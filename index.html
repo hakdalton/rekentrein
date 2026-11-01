@@ -109,13 +109,37 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 .les{margin:-4px 0 0;font-size:13px;opacity:.75}
 .kop2{margin:4px 0 -6px;font-family:var(--f-disp);font-weight:600;font-size:17px;color:var(--geel)}
 .ritten button:disabled{opacity:.35}
-.reiskeuze{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end}
-.reiskeuze label{display:flex;flex-direction:column;gap:3px;font-size:13px;min-width:0}
-.reiskeuze input{width:100%;min-width:0;border:0;border-radius:10px;padding:9px 10px;font:600 16px var(--f-tekst,system-ui);color:var(--blauw);background:var(--wit)}
-.wissel{border:2px solid rgba(255,255,255,.35);background:none;color:var(--wit);border-radius:10px;width:40px;height:40px;font-size:20px}
+.planner,.advies{background:var(--wit);color:var(--inkt);border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.planner h2{margin:0 0 8px;font:700 20px var(--f-disp);color:var(--blauw)}
+.velden{position:relative;display:flex;flex-direction:column;border:1px solid var(--lijn);border-radius:8px}
+.veld{display:flex;align-items:center;gap:10px;padding:4px 52px 4px 12px;min-width:0}
+.veld + .veld{border-top:1px solid var(--lijn)}
+.veld span{width:40px;flex:none;font-size:14px;color:var(--zacht)}
+.veld input{flex:1;min-width:0;border:0;padding:9px 0;font:600 17px system-ui,sans-serif;color:var(--blauw);background:none;outline:none}
+.veld input:focus{box-shadow:inset 0 -2px 0 var(--blauw-2)}
+.wissel{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:1px solid var(--lijn);background:var(--wit);color:var(--blauw);border-radius:50%;width:38px;height:38px;font-size:19px}
+.vertrek{margin:10px 0 0;font-size:14px;color:var(--zacht)}
+.advies-kop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.tijden{font:700 24px var(--f-disp);color:var(--blauw)}
+.duur{font-size:15px;color:var(--zacht);white-space:nowrap}
+.advies-sub{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;font-size:15px}
+.advies-sub .ic{background:var(--blauw);color:var(--wit)}
+.spoor{margin-left:auto;border:1px solid var(--lijn);border-radius:6px;padding:1px 8px;font-size:14px;font-weight:700;color:var(--blauw)}
+.advies-info{margin:8px 0 0;font-size:13px;color:var(--zacht)}
+.advies details{margin-top:8px}
+.advies summary{cursor:pointer;font-weight:700;color:var(--blauw-2);font-size:15px;padding:4px 0}
+.advies .haltes li button{color:var(--inkt)}
+.advies .haltes li button:hover{background:var(--papier)}
+.advies .haltes li button[aria-current="true"]{background:rgba(255,201,23,.25)}
+.advies .stip::before{background:var(--lijn)}
+.advies .stip i{background:var(--wit);border-color:var(--blauw)}
+.advies .haltes li.bereikt .stip i{background:var(--geel);border-color:var(--blauw)}
+.advies .h-vaardig{color:var(--zacht);opacity:1}
+.h-tijd{display:inline-block;width:46px;font:700 15px system-ui,sans-serif;color:var(--blauw)}
 .soort{display:flex;gap:6px}
-.soort button{flex:1;border:2px solid rgba(255,255,255,.35);background:none;color:var(--wit);border-radius:999px;padding:7px 12px;font-size:15px;font-weight:700}
-.soort button[aria-pressed="true"]{background:var(--wit);color:var(--blauw);border-color:var(--wit)}
+.soort{margin-top:10px}
+.soort button{flex:1;border:1px solid var(--lijn);background:var(--wit);color:var(--blauw);border-radius:999px;padding:7px 12px;font-size:15px;font-weight:700}
+.soort button[aria-pressed="true"]{background:var(--blauw);color:var(--wit);border-color:var(--blauw)}
 .kaartvak{background:rgba(255,255,255,.06);border-radius:14px;padding:6px}
 #kaart{display:block;width:100%;height:auto;max-height:48vh;cursor:pointer;touch-action:manipulation}
 .k-net{fill:none;stroke:rgba(255,255,255,.32);stroke-width:.45;stroke-linejoin:round}
@@ -269,17 +293,24 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
     <h2 class="kop2">Wat oefen je?</h2>
     <div class="ritten" id="ritten" role="tablist" aria-label="Kies een les"></div>
     <p class="les" id="lesTekst"></p>
-    <h2 class="kop2">Waar rijd je heen?</h2>
-    <div class="reiskeuze">
-      <label><span>Van</span><input id="iVan" list="stLijst" autocomplete="off" spellcheck="false"></label>
-      <button class="wissel" id="kWissel" type="button" aria-label="Van en naar omdraaien">⇅</button>
-      <label><span>Naar</span><input id="iNaar" list="stLijst" autocomplete="off" spellcheck="false"></label>
-      <datalist id="stLijst"></datalist>
-    </div>
-    <div class="soort"><button id="kIC" type="button">Intercity</button><button id="kSpr" type="button">Sprinter</button></div>
+    <section class="planner" aria-label="Reisplanner">
+      <h2>Plan je reis</h2>
+      <div class="velden">
+        <label class="veld"><span>Van</span><input id="iVan" list="stLijst" autocomplete="off" spellcheck="false" placeholder="Station"></label>
+        <label class="veld"><span>Naar</span><input id="iNaar" list="stLijst" autocomplete="off" spellcheck="false" placeholder="Station"></label>
+        <button class="wissel" id="kWissel" type="button" aria-label="Van en naar omdraaien" title="Omdraaien">⇅</button>
+        <datalist id="stLijst"></datalist>
+      </div>
+      <div class="soort"><button id="kIC" type="button">Intercity</button><button id="kSpr" type="button">Sprinter</button></div>
+      <p class="vertrek" id="pVertrek"></p>
+    </section>
+    <section class="advies" aria-label="Reisadvies">
+      <div class="advies-kop"><span class="tijden" id="rTijden"></span><span class="duur" id="rDuur"></span></div>
+      <div class="advies-sub"><span class="ic" id="rSoort">IC</span><span id="rRichting"></span><span class="spoor" id="rSpoor"></span></div>
+      <p class="advies-info" id="reisTekst"></p>
+      <details id="dHaltes"><summary id="sHaltes">Tussenstations</summary><ol class="haltes" id="haltes"></ol></details>
+    </section>
     <div class="kaartvak"><svg id="kaart" viewBox="12 -614 270 312" role="img" aria-label="Spoorkaart van Nederland"></svg><p class="kaart-hint" id="kaartHint"></p></div>
-    <p class="les" id="reisTekst"></p>
-    <ol class="haltes" id="haltes"></ol>
     <button class="knop-geel" id="kInstap">Instappen</button>
     <p class="stat" id="stat"></p>
     <p class="bron">Spoorkaart © OpenStreetMap-bijdragers (ODbL) · stations: Rijden de Treinen · gebouwen: 3DBAG door 3DGI (CC BY 4.0)</p>
@@ -1964,6 +1995,14 @@ function stationBijKlik(e){
 function zoekStation(tekst){ const t = String(tekst || '').trim().toLowerCase(); if (!t) return null;
   return NET.opNaam.get(t) || NET.ST.find(s => s.naam.toLowerCase().startsWith(t)) || NET.ST.find(s => s.naam.toLowerCase().includes(t)) || null; }
 function wijzigReis(van, naar, ic){ if (kiesReis(van || REIS.van, naar || REIS.naar, ic === undefined ? REIS.ic : ic)) vulStart(); else vulStart(); }
+// Dienstregeling voor in de planner: vertrek over een paar minuten, rijtijd uit de echte afstand.
+function reisTijden(){
+  const nu = new Date(), m0 = Math.ceil((nu.getHours()*60 + nu.getMinutes() + 3)/5)*5, v = REIS.ic ? 105 : 72;
+  const T = [m0]; for (let k = 1; k < REIS.stops.length; k++){ const D = (REIS.stops[k].r - REIS.stops[k-1].r)/1000;
+    T.push(T[k-1] + Math.max(2, Math.round(D/v*60)) + (k > 1 ? 1 : 0) + (REIS.stops[k-1].kop ? 4 : 0)); }
+  return T;
+}
+const spoorVan = code => 1 + [...code].reduce((a, c) => a + c.charCodeAt(0), 0) % 9;
 function vulStart(){
   const tabs = $('ritten'); tabs.innerHTML = '';
   for (let L = 0; L <= RITTEN.length; L++){
@@ -1977,14 +2016,20 @@ function vulStart(){
   if (document.activeElement !== $('iVan')) $('iVan').value = REIS.van.naam;
   if (document.activeElement !== $('iNaar')) $('iNaar').value = REIS.naar.naam;
   $('kIC').setAttribute('aria-pressed', REIS.ic); $('kSpr').setAttribute('aria-pressed', !REIS.ic);
-  $('reisTekst').textContent = `${treinSoort()} · ${Math.round(REIS.km)} km · ${nStops()} ${nStops() === 1 ? 'rit' : 'ritten'}` + (REIS.keer.length ? ` · ${REIS.keer.length}× kopmaken` : '');
+  const T = reisTijden(), hm = m => `${String(Math.floor(m/60)%24).padStart(2,'0')}:${String(Math.round(m)%60).padStart(2,'0')}`, duur = T[T.length-1] - T[0];
+  $('pVertrek').textContent = `Vertrek vandaag om ${hm(T[0])}`;
+  $('rTijden').textContent = `${hm(T[0])} → ${hm(T[T.length-1])}`; $('rDuur').textContent = `${Math.floor(duur/60)}:${String(duur%60).padStart(2,'0')}`;
+  $('rSoort').textContent = REIS.ic ? 'IC' : 'SPR'; $('rRichting').textContent = `${treinSoort()} naar ${eindNaam()}`; $('rSpoor').textContent = `spoor ${spoorVan(REIS.van.code)}`;
+  const kops = REIS.stops.filter(s => s.kop).map(s => s.naam);
+  $('reisTekst').textContent = `${Math.round(REIS.km)} km · ${nStops()} ${nStops() === 1 ? 'rit' : 'ritten'} met sommen` + (kops.length ? ` · kopmaken in ${kops.join(' en ')}` : '');
+  $('sHaltes').textContent = `${REIS.stops.length - 2 > 0 ? REIS.stops.length - 2 + ' tussenstations' : 'Rechtstreeks'} en sommen`;
   $('kaartHint').textContent = KAART.kies === 'van' ? 'Tik op de kaart op het station waar je instapt.' : 'Tik nu op het station waar je heen wilt.';
   const ol = $('haltes'); ol.innerHTML = ''; const g0 = prog.reis.g || 0, bezocht = new Set(prog.bezocht || []);
   REIS.stops.forEach((s, k) => {
     const li = document.createElement('li'); if (bezocht.has(s.code)) li.classList.add('bereikt');
     const wat = k === 0 ? 'Vertrek' : k <= g0 ? 'Gereden' : SKILLS[skillVooruit(k - 1 - g0)].naam;
     const b = document.createElement('button'); b.setAttribute('aria-current', k === g0 ? 'true' : 'false');
-    b.innerHTML = `<span class="stip"><i></i></span><span><span class="h-naam">${s.naam}${s.kop ? ' <small>kopmaken</small>' : ''}</span><span class="h-vaardig">${wat}</span></span>`;
+    b.innerHTML = `<span class="stip"><i></i></span><span><span class="h-naam"><span class="h-tijd">${hm(T[k])}</span>${s.naam}${s.kop ? ' <small>kopmaken</small>' : ''}</span><span class="h-vaardig">${wat}</span></span>`;
     b.onclick = () => { if (k === nStops()) return; prog.reis.g = k; bewaar(); zetTreinOp(k); vulStart(); };
     li.appendChild(b); ol.appendChild(li);
   });
