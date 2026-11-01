@@ -52,6 +52,27 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 #reizigers{position:fixed;z-index:5;right:max(16px,env(safe-area-inset-right,0px));top:calc(108px + env(safe-area-inset-top,0px));background:var(--wit);color:var(--blauw);font-family:var(--f-disp);font-weight:600;border-radius:999px;padding:5px 14px;font-size:15px;border:2px solid var(--blauw)}
 #reeks{position:fixed;z-index:5;right:max(16px,env(safe-area-inset-right,0px));top:calc(66px + env(safe-area-inset-top,0px));background:var(--geel);color:var(--blauw);font-family:var(--f-disp);font-weight:700;border-radius:999px;padding:6px 14px;font-size:16px;box-shadow:0 2px 0 var(--geel-d)}
 
+/* ---------- rijhendel ---------- */
+#rijhendel{position:fixed;z-index:5;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:92px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 8px;background:rgba(10,27,63,.82);border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.3);touch-action:none;user-select:none}
+.rh-titel{font:600 12px var(--f-disp);color:var(--geel);letter-spacing:.04em;text-transform:uppercase}
+.rh-knop{width:72px;height:58px;border:0;border-radius:14px;background:var(--geel);color:var(--blauw);box-shadow:0 4px 0 var(--geel-d);display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 12px var(--f-disp);gap:0}
+.rh-knop svg{width:28px;height:28px}
+.rh-knop:active{transform:translateY(3px);box-shadow:0 1px 0 var(--geel-d)}
+#kZachter{background:var(--wit);box-shadow:0 4px 0 var(--lijn)}
+.rh-stop{width:72px;border:2px solid rgba(255,255,255,.5);background:none;color:var(--wit);border-radius:10px;padding:5px 0;font:700 13px var(--f-disp)}
+.rh-baan{position:relative;width:46px;height:clamp(150px,30vh,260px);border-radius:12px;background:#1b2a4a;box-shadow:inset 0 2px 6px rgba(0,0,0,.5);cursor:ns-resize;outline:none}
+.rh-baan:focus-visible{box-shadow:0 0 0 3px var(--geel)}
+.rh-vul{position:absolute;left:0;right:0;bottom:0;border-radius:12px;background:linear-gradient(to top,#2e64c8,#6aa0ff)}
+.rh-slot{position:absolute;left:0;right:0;top:0;border-radius:12px 12px 0 0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.12) 0 6px,rgba(255,255,255,.03) 6px 12px);display:flex;align-items:flex-start;justify-content:center}
+.rh-slot span{margin-top:4px;font:700 9px var(--f-disp);color:rgba(255,255,255,.7);text-transform:uppercase}
+.rh-streepjes{position:absolute;inset:0;pointer-events:none}
+.rh-streepjes i{position:absolute;left:-20px;width:18px;text-align:right;font:600 10px system-ui,sans-serif;font-style:normal;color:rgba(255,255,255,.75);transform:translateY(50%)}
+.rh-streepjes i::after{content:"";position:absolute;right:-26px;top:50%;width:8px;height:2px;background:rgba(255,255,255,.5)}
+.rh-echt{position:absolute;right:-7px;width:0;height:0;border:6px solid transparent;border-right-color:var(--wit);transform:translateY(50%);transition:bottom .1s linear}
+.rh-greep{position:absolute;left:-8px;right:-8px;height:34px;border-radius:10px;background:var(--geel);box-shadow:0 3px 0 var(--geel-d),0 0 0 2px var(--blauw);display:grid;place-items:center;transform:translateY(50%);pointer-events:none}
+.rh-greep b{font:700 16px var(--f-disp);color:var(--blauw)}
+
 /* ---------- somkaart ---------- */
 #vraag{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));
   width:min(780px,calc(100vw - 32px));display:grid;grid-template-columns:1fr auto;gap:16px;align-items:stretch;
@@ -214,6 +235,8 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
   .b-rit span{max-width:24vw;font-size:12px}
   .rond{width:54px;height:54px}
   #bedien{bottom:auto;top:calc(64px + env(safe-area-inset-top,0px))}
+  #rijhendel{bottom:auto;top:calc(130px + env(safe-area-inset-top,0px));width:74px;padding:8px 6px;gap:6px}
+  .rh-knop{width:60px;height:46px} .rh-stop{width:60px} .rh-baan{height:clamp(110px,24vh,180px)}
   #reeks{top:calc(60px + env(safe-area-inset-top,0px));font-size:14px}
   #reizigers{top:calc(96px + env(safe-area-inset-top,0px));font-size:13px}
 }
@@ -272,9 +295,21 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 <div id="reizigers" hidden>52 reizigers</div>
 <div id="bedien" hidden>
   <button class="rond" id="kBeeld" title="Ander beeld (C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg><span id="kBeeldTxt">Cabine</span></button>
-  <button class="rond hendelknop" id="kHarder" title="Harder (pijltje omhoog)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 15l6-6 6 6"/></svg>Harder</button>
-  <button class="rond hendelknop" id="kZachter" title="Zachter (pijltje omlaag)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>Zachter</button>
   <button class="rond" id="kToeter" title="Toeteren (H)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10v4h4l6 4V6L7 10H3z"/><path d="M16 9c1.5 1.5 1.5 4.5 0 6M19 6.5c3 3 3 8 0 11"/></svg>Toeter</button>
+</div>
+
+<div id="rijhendel" hidden>
+  <div class="rh-titel">Rijhendel</div>
+  <button class="rh-knop" id="kHarder" type="button" title="Harder (pijltje omhoog)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 15l6-6 6 6"/></svg><span>Harder</span></button>
+  <div class="rh-baan" id="rhBaan" role="slider" tabindex="0" aria-label="Snelheid van de hendel" aria-valuemin="0">
+    <div class="rh-slot" id="rhSlot"><span>reeks</span></div>
+    <div class="rh-vul" id="rhVul"></div>
+    <div class="rh-streepjes" id="rhStreepjes"></div>
+    <div class="rh-echt" id="rhEcht" title="Echte snelheid"></div>
+    <div class="rh-greep" id="rhGreep"><b id="rhWaarde">0</b></div>
+  </div>
+  <button class="rh-knop" id="kZachter" type="button" title="Zachter (pijltje omlaag)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg><span>Zachter</span></button>
+  <button class="rh-stop" id="kStop" type="button" title="Hendel op 0">Stop</button>
 </div>
 
 <section id="vraag" hidden aria-live="polite">
@@ -1869,13 +1904,55 @@ function bouwStation(g, S, k){
   if (!BAG_WERKT){ const gb = new THREE.Group(); plaats(gb, S-60, 22); const romp = doos(12,8,34,M.boerderij,0,4,0); romp.castShadow = true; gb.add(romp);
     const d = prisma(12.8,5,35,M.pannen2); d.position.y = 8; gb.add(d);
     const bord = vlak(10, 1.6, mb); bord.rotation.y = -Math.PI/2; bord.position.set(-6.05, 6.4, 0); gb.add(bord); g.add(gb); }
-  // reizigers op het perron
-  const kl = [0xd8262c,0x2d6fd6,0x2fae4a,0xf28c1a,0x7a4bb8,0x333333,0xe8e1d0];
+  // reizigers op het perron, soms in groepjes, met tas, koffer of telefoon
   const r = rng(S + 5);
-  for (let i=0;i<14;i++){ const p = new THREE.Group(); plaats(p, S - 125 + r()*140, r() < .6 ? 3.5 + r()*5 : -7.5 - r()*8, 1.62, r()*6.28);
-    const mat = std(kl[Math.floor(r()*kl.length)]); mat.userData.eigen = true;
-    const lijf = cilinder(0.26,1.1,mat,0,0.85,0); lijf.castShadow = true; p.add(lijf, cilinder(0.12,0.5,M.zwartM,0,0.25,0));
-    const hoofd = new THREE.Mesh(G.bol, std(0xe0b58e)); hoofd.material.userData.eigen = true; hoofd.scale.setScalar(0.17); hoofd.position.y = 1.6; p.add(hoofd); g.add(p); }
+  for (let i = 0; i < 16; i++){
+    const p = maakMens(r); plaats(p, S - 125 + r()*140, r() < .6 ? 3.6 + r()*4.8 : -7.6 - r()*8, 1.62, r()*6.28); g.add(p);
+    if (r() < 0.3){ const q = maakMens(r); q.position.copy(p.position).add(new THREE.Vector3(0.7*Math.cos(p.rotation.y), 0, -0.7*Math.sin(p.rotation.y))); q.rotation.y = p.rotation.y + Math.PI + (r() - 0.5); g.add(q); }
+  }
+}
+// een mens: benen, romp, armen, nek, hoofd met haar; kleding, huid en haar wisselen
+const MENS_MAT = new Map();
+const mensMat = c => { if (!MENS_MAT.has(c)) MENS_MAT.set(c, std(c, {roughness:.85})); return MENS_MAT.get(c); };
+const HUID = [0xf3d2b8, 0xe8b996, 0xd29f76, 0xb07a52, 0x8a5a3a, 0x5e3b26];
+const HAAR = [0x1c1612, 0x3b2618, 0x6b4426, 0xb88a4a, 0xd8c08a, 0x9a9a98, 0x8a3a1c];
+const SHIRT = [0xd8262c, 0x2d6fd6, 0x2fae4a, 0xf28c1a, 0x7a4bb8, 0x2a2d33, 0xe8e1d0, 0x0f6f6a, 0xf2c1d1, 0x6b8e23, 0xffffff];
+const BROEK = [0x2b3f66, 0x1d1f24, 0x55595f, 0xb8a27a, 0x3b4a2a, 0x6a4a3a];
+function maakMens(r){
+  const p = new THREE.Group(), kies = a => a[Math.floor(r()*a.length)], kind = r() < 0.15, sch = kind ? 0.68 : 0.92 + r()*0.16;
+  const huid = mensMat(kies(HUID)), shirt = mensMat(kies(SHIRT)), broek = mensMat(r() < 0.18 ? kies(SHIRT) : kies(BROEK)), haar = mensMat(kies(HAAR)), schoen = mensMat(r() < 0.5 ? 0x1a1a1a : 0xf0f0f0);
+  const m = new THREE.Group(); m.scale.setScalar(sch); p.add(m);
+  const deel = (geo, mat, sx, sy, sz, x, y, z) => { const d = new THREE.Mesh(geo, mat); d.scale.set(sx, sy, sz); d.position.set(x, y, z); d.castShadow = true; m.add(d); return d; };
+  const rok = r() < 0.2;
+  for (const x of [-0.1, 0.1]){
+    deel(G.cil, broek, 0.075, 0.82, 0.075, x, 0.43, 0);                    // been
+    deel(G.doos, schoen, 0.11, 0.07, 0.24, x, 0.035, 0.04);                 // schoen
+  }
+  if (rok) deel(G.cil, broek, 0.2, 0.32, 0.17, 0, 0.72, 0);
+  const romp = deel(G.bol, shirt, 0.22, 0.34, 0.14, 0, 1.12, 0);            // romp (afgerond)
+  deel(G.cil, shirt, 0.2, 0.36, 0.13, 0, 1.02, 0);
+  const tel = r() < 0.25;
+  for (const k of [-1, 1]){
+    const arm = new THREE.Group(); arm.position.set(k*0.25, 1.36, 0); m.add(arm);
+    const boven = new THREE.Mesh(G.cil, shirt); boven.scale.set(0.055, 0.32, 0.055); boven.position.y = -0.16; boven.castShadow = true; arm.add(boven);
+    const onder = new THREE.Group(); onder.position.y = -0.32; arm.add(onder);
+    const ow = new THREE.Mesh(G.cil, huid); ow.scale.set(0.045, 0.28, 0.045); ow.position.y = -0.14; onder.add(ow);
+    const hand = new THREE.Mesh(G.bol, huid); hand.scale.setScalar(0.05); hand.position.y = -0.3; onder.add(hand);
+    arm.rotation.z = k*0.08; if (tel && k > 0){ onder.rotation.x = -1.3; }   // kijkt op de telefoon
+  }
+  if (tel) deel(G.doos, mensMat(0x111111), 0.07, 0.13, 0.015, 0.22, 1.08, 0.3);
+  deel(G.cil, huid, 0.05, 0.1, 0.05, 0, 1.5, 0);                            // nek
+  const hoofd = deel(G.bol, huid, 0.1, 0.12, 0.11, 0, 1.64, 0);
+  if (tel) hoofd.rotation.x = 0.35;
+  const stijl = r();
+  if (stijl < 0.12) deel(G.bol, mensMat(kies(SHIRT)), 0.108, 0.07, 0.118, 0, 1.72, 0);   // muts
+  else { deel(G.bol, haar, 0.106, 0.09, 0.116, 0, 1.69, -0.01);                            // haar op het hoofd
+    if (stijl > 0.6) deel(G.doos, haar, 0.19, 0.24, 0.07, 0, 1.56, -0.08); }                 // lang haar
+  const extra = r();
+  if (extra < 0.25) deel(G.doos, mensMat(kies([0x2a2d33, 0x0f6f6a, 0xd8262c, 0x2d6fd6])), 0.3, 0.38, 0.14, 0, 1.15, -0.2);   // rugzak
+  else if (extra < 0.4){ const kof = deel(G.doos, mensMat(kies([0x2a2d33, 0x8a1c2c, 0x1d3f7a, 0x7a7f86])), 0.36, 0.5, 0.22, 0.42, 0.27, 0.05); kof.castShadow = true;
+    deel(G.cil, mensMat(0x222222), 0.012, 0.42, 0.012, 0.42, 0.72, 0.05); }                 // koffer met handvat
+  return p;
 }
 // stootblok aan het eind van een kopspoor: rood-witte balk op twee poten
 function bouwStootblok(g, S, t, kant){
@@ -2183,7 +2260,7 @@ function vertrek(){
   KIJK.aan = false;
   spel.hendel = 0; setTimeout(() => { if (spel.modus === 'rijden' && spel.hendel === 0) melding('Geef gas: druk op Harder ▲'); }, 2500);
   spel.modus = 'rijden'; spel.deurDoel = 0; spel.ritSein = R(2, Math.max(2, nSein(spel.g))); spel.ritWissel = 0;
-  $('start').hidden = true; $('aankomst').hidden = true; $('balk').hidden = false; $('bedien').hidden = false; $('reeks').hidden = false; $('reizigers').hidden = false;
+  $('start').hidden = true; $('aankomst').hidden = true; $('balk').hidden = false; $('bedien').hidden = false; $('rijhendel').hidden = false; tekenHendel(); $('reeks').hidden = false; $('reizigers').hidden = false;
   $('bSoort').textContent = soortKort(); $('bRichting').textContent = `${treinSoort()} naar ${eindNaam()}`; $('bVan').textContent = stopNaam(spel.g); $('bNaar').textContent = stopNaam(spel.g+1);
   const sp = $('bSpoor'), G = REIS.S[spel.g+1] - REIS.S[spel.g]; sp.querySelectorAll('.b-sein').forEach(e => e.remove());
   seinIdsVan(spel.g).forEach((id,i) => { const e = document.createElement('i'); e.className = 'b-sein'; e.dataset.id = id; e.style.left = ((i+1)*SIGSP/G*100)+'%'; sp.appendChild(e); });
@@ -2216,7 +2293,7 @@ function aankomst(){
   }, 2200);
 }
 function naarStart(){
-  spel.modus = 'titel'; spel.q = null; $('vraag').hidden = true; $('aankomst').hidden = true; $('balk').hidden = true; $('bedien').hidden = true; $('reeks').hidden = true; $('reizigers').hidden = true;
+  spel.modus = 'titel'; spel.q = null; $('vraag').hidden = true; $('aankomst').hidden = true; $('balk').hidden = true; $('bedien').hidden = true; $('rijhendel').hidden = true; $('reeks').hidden = true; $('reizigers').hidden = true;
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   vulStart(); $('start').hidden = false;
 }
@@ -2421,7 +2498,9 @@ function update(dt){
   // scherm
   if (spel.modus === 'rijden' || spel.modus === 'aangekomen'){
     const kmu = Math.round(spel.v*3.6); if (kmu !== UIT.kmu){ UIT.kmu = kmu; $('bKmu').textContent = kmu; }
-    if (spel.hendel !== UIT.hendel){ UIT.hendel = spel.hendel; $('bHendel').textContent = spel.hendel ? `hendel ${spel.hendel}` : 'hendel 0: geef gas'; }
+    if (spel.hendel !== UIT.hendel || maxKmu() !== UIT.hmax || trein.type !== UIT.hendelType){ UIT.hendel = spel.hendel; UIT.hmax = maxKmu(); $('bHendel').textContent = spel.hendel ? `hendel ${spel.hendel}` : 'hendel 0: geef gas'; tekenHendel(); }
+    $('rhEcht').style.bottom = clamp(spel.v*3.6/TT().vmax, 0, 1)*100 + '%';
+    if ($('rijhendel').hidden !== $('bedien').hidden) $('rijhendel').hidden = $('bedien').hidden;
     $('bVoortgang').style.width = clamp((spel.s - REIS.S[spel.g])/(REIS.S[spel.g+1] - REIS.S[spel.g])*100, 0, 100) + '%';
     document.querySelectorAll('.b-sein').forEach(e => e.classList.toggle('groen', seinIs(+e.dataset.id) === 'groen'));
     $('reeks').textContent = 'Reeks ' + spel.reeks; $('reizigers').textContent = spel.reizigers + ' reizigers';
@@ -2472,6 +2551,22 @@ for (const [id, d] of [['kHarder', 10], ['kZachter', -10]]){
   let iv = 0; const knop = $(id), stop = () => clearInterval(iv);
   knop.addEventListener('pointerdown', e => { e.preventDefault(); zetHendel(spel.hendel + d); stop(); iv = setInterval(() => zetHendel(spel.hendel + d/2), 160); });
   for (const ev of ['pointerup','pointerleave','pointercancel']) knop.addEventListener(ev, stop);
+}
+$('kStop').onclick = () => zetHendel(0);
+// de hendel zelf: slepen of klikken op de baan zet de snelheid
+{ const baan = $('rhBaan');
+  const naarHendel = e => { const r = baan.getBoundingClientRect(); zetHendel(clamp((r.bottom - e.clientY)/r.height, 0, 1)*TT().vmax); };
+  baan.addEventListener('pointerdown', e => { e.preventDefault(); try { baan.setPointerCapture(e.pointerId); } catch (_) {} baan.dataset.sleep = '1'; naarHendel(e); });
+  baan.addEventListener('pointermove', e => { if (baan.dataset.sleep) naarHendel(e); });
+  for (const ev of ['pointerup', 'pointercancel']) baan.addEventListener(ev, () => { delete baan.dataset.sleep; });
+  baan.addEventListener('keydown', e => { if (e.key === 'ArrowUp' || e.key === 'ArrowRight'){ e.preventDefault(); e.stopPropagation(); zetHendel(spel.hendel + 5); } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft'){ e.preventDefault(); e.stopPropagation(); zetHendel(spel.hendel - 5); } }); }
+function tekenHendel(){
+  const vm = TT().vmax, max = maxKmu(), stap = vm > 200 ? 50 : 20;
+  if (UIT.hendelType !== trein.type){ UIT.hendelType = trein.type; let h = '';
+    for (let v = 0; v <= vm; v += stap) h += `<i style="bottom:${v/vm*100}%">${v}</i>`; $('rhStreepjes').innerHTML = h; $('rhBaan').setAttribute('aria-valuemax', vm); }
+  $('rhSlot').style.height = (1 - max/vm)*100 + '%'; $('rhSlot').hidden = max >= vm;
+  $('rhVul').style.height = spel.hendel/vm*100 + '%'; $('rhGreep').style.bottom = spel.hendel/vm*100 + '%';
+  $('rhWaarde').textContent = spel.hendel; $('rhBaan').setAttribute('aria-valuenow', spel.hendel);
 }
 $('kHulp').onclick = toonHulp; $('kStap').onclick = volgendeStap;
 $('kInstap').onclick = () => { geluidAan(); zetTreinOp(prog.reis.g || 0); camKlaar = false; vertrek(); };
