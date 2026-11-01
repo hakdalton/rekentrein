@@ -208,7 +208,16 @@ keer = []
 for k in houd:
     if graad[k] == 1 and any(math.dist(knopen[k], p) < 500 for p in st_pt):
         keer.append(nieuw[k])
-json.dump({'bron': 'Spoor: OpenStreetMap-bijdragers (ODbL). Stations: Rijden de Treinen (CC BY 4.0).',
+# landsgrens voor het kaartje (PDOK bestuurlijke gebieden, landgebied), grof vereenvoudigd, in hectometers
+grens = []
+for poly in json.load(open(os.path.join(BRON, 'landgebied.json')))['features'][0]['geometry']['coordinates']:
+    for ring in poly:
+        if abs(sum(ring[i][0]*ring[i+1][1] - ring[i+1][0]*ring[i][1] for i in range(len(ring)-1)))/2 < 8e6:
+            continue
+        pts = [tuple(q[:2]) for q in ring]; h = len(pts)//2   # gesloten ring: in twee helften vereenvoudigen
+        r = dp(pts[:h+1], 250) + dp(pts[h:], 250)[1:]
+        grens.append([v for q in r for v in (round(q[0]/100), round(q[1]/100))])
+json.dump({'bron': 'Spoor: OpenStreetMap-bijdragers (ODbL). Stations: Rijden de Treinen (CC BY 4.0). Grens: PDOK bestuurlijke gebieden.', 'grens': grens,
            'knopen': [[round(knopen[k][0]), round(knopen[k][1])] for k in houd], 'lijnen': uit_l, 'stations': uit_s, 'keer': keer},
           open(UIT, 'w'), separators=(',', ':'), ensure_ascii=False)
 print('keerpunten', len(keer), 'knopen', len(houd), 'lijnen', len(uit_l), 'stations', len(uit_s), 'grootte', os.path.getsize(UIT) // 1024, 'KB')

@@ -48,3 +48,9 @@ for laag in ['overweg']:
     feats = alle_paginas(f'https://api.pdok.nl/prorail/spoorwegen/ogc/v1/collections/{laag}/items?{q}')
     json.dump({'type': 'FeatureCollection', 'features': feats}, open(os.path.join(BRON, f'prorail_{laag}.json'), 'w'))
     print(laag, len(feats))
+
+# landsgrens voor het kaartje
+q = urllib.parse.urlencode({'f': 'json', 'limit': 10, 'crs': RD})
+json.dump({'type': 'FeatureCollection', 'features': alle_paginas(f'https://api.pdok.nl/kadaster/bestuurlijkegebieden/ogc/v1/collections/landgebied/items?{q}')},
+          open(os.path.join(BRON, 'landgebied.json'), 'w'))
+print('landgebied klaar')
