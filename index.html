@@ -176,6 +176,23 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 .k-label{font:700 7px var(--f-disp,sans-serif);fill:#fff;paint-order:stroke;stroke:rgba(10,27,63,.9);stroke-width:2px}
 .bron{margin:-6px 0 0;font-size:11px;opacity:.55}
 .kijktip{margin:6px 0 0;font-size:13px;opacity:.7}
+.machinist{display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.08);border-radius:12px;padding:10px 12px;font-size:13px}
+.machinist b{display:block;font:600 16px var(--f-disp);color:var(--geel)}
+.machinist span{display:block;opacity:.8}
+.mf-rond{flex:none;width:58px;height:58px;border-radius:50%;background:#1b2a4a center/cover no-repeat;border:3px solid var(--geel)}
+.mf-knoppen{display:flex;gap:6px;margin-top:6px}
+.mf-knop{border:0;border-radius:999px;background:var(--wit);color:var(--blauw);padding:5px 12px;font:700 13px var(--f-disp);cursor:pointer}
+.mf-weg{background:none;color:var(--wit);border:1px solid rgba(255,255,255,.5)}
+#fotoDialoog{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,27,63,.75);padding:16px}
+#fotoDialoog[hidden]{display:none}
+.fd-kaart{background:var(--wit);color:var(--inkt);border-radius:16px;padding:16px;width:min(460px,100%);display:flex;flex-direction:column;gap:10px}
+.fd-kaart h2{margin:0;font:700 20px var(--f-disp);color:var(--blauw)}
+.fd-veld{position:relative;align-self:center;max-width:100%;touch-action:none;user-select:none;overflow:hidden;border-radius:8px}
+.fd-veld img{display:block;max-width:100%;max-height:52vh;border-radius:8px}
+.fd-cirkel{position:absolute;border-radius:50%;border:3px solid var(--geel);box-shadow:0 0 0 2000px rgba(10,27,63,.45);cursor:move}
+.fd-maat{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--zacht)}
+.fd-maat input{flex:1}
+.fd-uitleg{margin:0;font-size:12px;color:var(--zacht)}
 .kaart-hint{margin:4px 4px 0;font-size:13px;opacity:.8}
 .h-naam small{font-family:var(--f-tekst,system-ui);font-size:12px;font-weight:700;background:var(--geel);color:var(--blauw);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
 .haltes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -354,11 +371,25 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
     </section>
     <div class="kaartvak"><svg id="kaart" viewBox="12 -614 270 312" role="img" aria-label="Spoorkaart van Nederland"></svg><p class="kaart-hint" id="kaartHint"></p></div>
     <button class="knop-geel" id="kInstap">Instappen</button>
+    <div class="machinist">
+      <div class="mf-rond" id="mfVoorbeeld" aria-hidden="true"></div>
+      <div><b>Foto van de machinist</b><span>Zie jezelf achter de voorruit. De foto blijft alleen op deze computer.</span>
+        <div class="mf-knoppen"><label class="mf-knop">Foto kiezen<input type="file" id="mfBestand" accept="image/*" hidden></label><button class="mf-knop mf-weg" id="mfWeg" type="button" hidden>Weghalen</button></div></div>
+    </div>
     <p class="stat" id="stat"></p>
     <p class="bron">Spoorkaart © OpenStreetMap-bijdragers (ODbL) · stations: Rijden de Treinen · gebouwen: 3DBAG door 3DGI (CC BY 4.0)</p>
   </div>
 </section>
 
+<section id="fotoDialoog" hidden>
+  <div class="fd-kaart">
+    <h2>Zet de cirkel om het gezicht</h2>
+    <div class="fd-veld" id="fdVeld"><img id="fdImg" alt=""><div class="fd-cirkel" id="fdCirkel"></div></div>
+    <label class="fd-maat">Kleiner <input type="range" id="fdMaat" min="0.12" max="0.9" step="0.01" value="0.4"> Groter</label>
+    <div class="rij"><button class="knop-geel" id="fdOk" type="button">Gebruik deze</button><button class="knop-blauw" id="fdAnnuleer" type="button">Annuleer</button></div>
+    <p class="fd-uitleg">Sleep de cirkel naar het gezicht. De foto wordt niet opgestuurd: hij blijft alleen in deze browser.</p>
+  </div>
+</section>
 <section id="aankomst" hidden>
   <div class="bord" id="aBord">Gouda</div>
   <p id="aTekst"></p>
@@ -1094,6 +1125,7 @@ const M = {
   kap: std(0x23272d,{roughness:.5}), dak: std(0x4a4f57,{roughness:.6}),
   rok: std(0x1d2633,{roughness:.8}), zwart: std(0x111316,{roughness:.6, side:DS2, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2}),
   glas: std(0xffffff,{map:T.ruit, roughness:.15, metalness:.3, side:DS2}),
+  voorruit: std(0x9fb2c4,{roughness:.1, metalness:.4, side:DS2, transparent:true, opacity:.38, depthWrite:false}),   // doorzichtig: je ziet de machinist zitten
   zijglas: std(0x1b2430,{roughness:.15, metalness:.5, side:DS2, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-4}),
   naad: std(0x26313f,{roughness:.6, side:DS2, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2}),
   wiel: std(0x34373b,{metalness:.6, roughness:.45}),
@@ -1246,7 +1278,7 @@ function maakRijtuig(soort, nummer, achterkant, info){
     const snuit = planBlok(0.04, 0.62, 1.33, M.rok, 0.1, 0.1); snuit.position.z = zKop; model.add(snuit);
     const cab = extrudeKop(CABINE, 2.6, 0.2, M.kap); cab.position.z = zKop; model.add(cab);
     // voorruit en bestemmingsscherm
-    const ruit = kopVlak(model, [2.05,3.55], [1.45,4.4], 0.06, 0.86, 2.0, 0.205, M.glas, zKop); cabDelen.push(ruit);
+    const ruit = kopVlak(model, [2.05,3.55], [1.45,4.4], 0.06, 0.86, 2.0, 0.205, M.voorruit, zKop); cabDelen.push(ruit);
     for (const x of [-0.42, 0.42]){ const stijl = kopVlak(model, [2.05,3.55], [1.45,4.4], 0.06, 0.86, 0.06, 0.21, M.zwart, zKop, x); cabDelen.push(stijl); }
     if (info){ const t = tekstTex('Intercity', {w:256,h:40,bg:'#0b0b0b',fg:'#ffb21a',font:'700 28px Atkinson Hyperlegible, monospace'});
       const scherm = kopVlak(model, [2.05,3.55], [1.45,4.4], 0.86, 0.97, 1.0, 0.21, new THREE.MeshBasicMaterial({map:t, side:DS2}), zKop); cabDelen.push(scherm); info.bestemming = t; }
@@ -1319,20 +1351,21 @@ function ringPunten(b, yo, yb, rb, ro, n){
   return pts;
 }
 // loft door doorsneden {u, b, yo, yb, rb, ro}; kleur per punt via kleurFn(x, y, u, relatief) → [r,g,b]; voorkant dicht
+// voorruiten zijn half doorzichtig; de neus wordt dan na het gezicht van de machinist getekend, zodat je hem door de ruit ziet
 function loft(secties, kleurFn, n = 112){
   const ringen = secties.map(s => ringPunten(s.b, s.yo, s.yb, s.rb, s.ro, n).map(([x, y]) => [x, y, s.u]));
   // voorkant in concentrische ringen, zodat ruit en banden scherp gekleurd kunnen worden
   { const r0 = ringen[ringen.length-1], cy = r0.reduce((t, p) => t + p[1], 0)/n;
     for (let k = 1; k <= 16; k++){ const f = 1 - k/16.5; ringen.push(r0.map(([x, y, z]) => [x*f, cy + (y - cy)*f, z + 0.01*k])); } }
   const pos = [], kl = [], idx = [];
-  const zet = (p, rel) => { pos.push(p[0], p[1], p[2]); kl.push(...kleurFn(p[0], p[1], p[2], rel)); };
+  let alfa = false; const zet = (p, rel) => { pos.push(p[0], p[1], p[2]); const c = kleurFn(p[0], p[1], p[2], rel); if (c.length > 3 && c[3] < 1) alfa = true; kl.push(c[0], c[1], c[2], c.length > 3 ? c[3] : 1); };
   ringen.forEach((r, i) => r.forEach(p => zet(p, i/(ringen.length - 1))));
   for (let i = 0; i < ringen.length - 1; i++) for (let j = 0; j < n; j++){ const a = i*n + j, b = i*n + (j+1)%n, c = a + n, d = b + n; idx.push(a, c, b, b, c, d); }
   // dop op de voorkant
   const laatst = ringen[ringen.length-1], mid = [0, laatst.reduce((s, p) => s + p[1], 0)/n, laatst[0][2] + 0.02], mi = pos.length/3; zet(mid, 1);
   for (let j = 0; j < n; j++) idx.push((ringen.length-1)*n + j, mi, (ringen.length-1)*n + (j+1)%n);
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(kl, 3)); g.setIndex(idx); g.computeVertexNormals();
-  const m = new THREE.Mesh(g, std(0xffffff, {vertexColors:true, roughness:.42, side:DS2})); m.material.userData.eigen = true; m.userData.eigen = true; m.castShadow = m.receiveShadow = true; return m;
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(kl, 4)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, std(0xffffff, {vertexColors:true, roughness:.42, side:DS2, transparent:alfa})); if (alfa) m.renderOrder = 2; m.material.userData.eigen = true; m.userData.eigen = true; m.castShadow = m.receiveShadow = true; return m;
 }
 const rgb = h => { const c = new THREE.Color(h); return [c.r, c.g, c.b]; };
 // zijvlak (sticker) op beide zijkanten bij halve breedte b
@@ -1405,7 +1438,7 @@ function maakModernRijtuig(type, soort, nummer, achterkant, info){
       neusLengte = 1.25;
       const S = [[0,1,0],[0.35,0.99,0.02],[0.7,0.96,0.1],[0.95,0.91,0.25],[1.12,0.84,0.5],[1.25,0.72,0.85]].map(([u, f, t]) => ({u:zKop + u, b:b*f, yo:yo + 0.05*u, yb:yb - t*0.9 - 0.05, rb:0.55, ro:0.25}));
       const neus = loft(S, (x, y, z, rel) => { const u = z - zKop;
-        if (y > 1.75 && y < 3.25 - u*0.45 && Math.abs(x) < b*0.86 && u > 0.25) return rgb(0x10151c);   // grote voorruit
+        if (y > 1.75 && y < 3.25 - u*0.45 && Math.abs(x) < b*0.86 && u > 0.25) return [...rgb(0x16202b), 0.42];   // grote voorruit (doorzichtig)
         if (y < 0.95) return rgb(0x3b4048); if (y < 1.45) return rgb(0xf3f5f7); if (y < 1.52) return rgb(0xFFC200); return rgb(0x1f4fbf); });
       model.add(neus); cabDelen.push(neus);
       const bord = bestemmingBord(model, info, 3.0, zKop + 1.43, 0.9); if (bord) cabDelen.push(bord);
@@ -1416,7 +1449,7 @@ function maakModernRijtuig(type, soort, nummer, achterkant, info){
       neusLengte = 1.7;
       const S = [[0,1,0],[0.4,0.99,0.05],[0.8,0.97,0.25],[1.15,0.93,0.55],[1.45,0.86,1.0],[1.7,0.74,1.55]].map(([u, f, t]) => ({u:zKop + u, b:b*f, yo:yo + 0.06*u, yb:yb - t*1.3 - 0.02, rb:0.7, ro:0.3}));
       const neus = loft(S, (x, y, z) => { const u = z - zKop;
-        if (y > 2.25 && y < 3.35 - u*0.25 && Math.abs(x) < b*0.82 && u > 0.5) return rgb(0x10151c);   // voorruit
+        if (y > 2.25 && y < 3.35 - u*0.25 && Math.abs(x) < b*0.82 && u > 0.5) return [...rgb(0x16202b), 0.42];   // voorruit (doorzichtig)
         if (y > 2.05 && u > 0.15) return rgb(0x7a828c);   // grijze kap
         if (y < 0.9) return rgb(0x3b4048); return rgb(0xFFC200); });
       model.add(neus); cabDelen.push(neus);
@@ -1430,7 +1463,7 @@ function maakModernRijtuig(type, soort, nummer, achterkant, info){
         S.push({u:zKop + u, b:b*(1 - 0.62*Math.pow(t, 2.2)), yo:yo + 0.12*t, yb:yb - 2.6*Math.pow(t, 1.6) - 0.05*t, rb:0.6 - 0.25*t, ro:0.22 + 0.15*t}); }
       const neus = loft(S, (x, y, z) => { const u = z - zKop, top = yb - 2.6*Math.pow(u/6.8, 1.6);
         const ruitOnder = top - 0.55;
-        if (u > 2.6 && u < 4.9 && y > ruitOnder && Math.abs(x) < 0.9) return rgb(0x0f141b);   // voorruit
+        if (u > 2.6 && u < 4.9 && y > ruitOnder && Math.abs(x) < 0.9) return [...rgb(0x16202b), 0.42];   // voorruit (doorzichtig)
         if (u > 5.6) return rgb(0x8f98a5);                                                      // grijze punt
         if (u > 2.0 && ((y > ruitOnder - 0.5 && y <= ruitOnder + 0.02) || (Math.abs(x) >= 0.9 && y > ruitOnder - 0.5 && u > 2.4))) return rgb(0xFFC200);   // gele lijst en kin rond de ruit
         if (y < 1.66) return rgb(0x8f98a5); return rgb(0x2a3b5c); }, 72);
@@ -1990,6 +2023,49 @@ const spel = { hendel:0, reizigers:prog.reizigers, ritWissel:0, ritSein:3, modus
   t:0, segGoed:0, beeld:prog.beeld, baan:0, klikS:0, tegenTrein:null, tegenTijd:40, aankomstT:0, deurOpen:0 };
 let trein = maakTreinstel('icm', 4011, true);
 maakCabine(trein.delen[0].auto, trein.delen[0].zKop);
+/* ---------- de machinist achter de voorruit, met het gezicht van een eigen foto ----------
+   De foto komt uit een bestand dat de speler zelf kiest en blijft in localStorage van deze browser;
+   hij hoort niet bij de voortgang en wordt dus nooit naar de server of GitHub gestuurd. */
+const FOTO_SLEUTEL = 'rekentrein.machinistfoto';
+let machinistTex = null;
+function leesFoto(){ try { return localStorage.getItem(FOTO_SLEUTEL) || ''; } catch (e) { return ''; } }
+function getekendGezicht(){   // zonder foto: een vrolijke machinist met pet
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+  x.beginPath(); x.arc(128, 128, 126, 0, Math.PI*2); x.clip(); x.fillStyle = '#9fc3e6'; x.fillRect(0, 0, 256, 256);
+  x.fillStyle = '#e8b996'; x.beginPath(); x.ellipse(128, 150, 70, 84, 0, 0, Math.PI*2); x.fill();
+  x.fillStyle = '#1b2a4a'; x.beginPath(); x.ellipse(128, 78, 84, 40, 0, Math.PI, 0); x.fill(); x.fillRect(44, 74, 168, 18);
+  x.fillStyle = '#FFC917'; x.fillRect(110, 52, 36, 14);
+  x.fillStyle = '#1d2633'; for (const ex of [100, 156]){ x.beginPath(); x.arc(ex, 142, 8, 0, Math.PI*2); x.fill(); }
+  x.strokeStyle = '#8a3b2a'; x.lineWidth = 6; x.beginPath(); x.arc(128, 170, 30, 0.2*Math.PI, 0.8*Math.PI); x.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function maakGezichtTex(cb){
+  const url = leesFoto(); if (!url){ cb(getekendGezicht()); return; }
+  const img = new Image(); img.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+    x.beginPath(); x.arc(128, 128, 126, 0, Math.PI*2); x.clip(); x.drawImage(img, 0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; cb(t); }; img.onerror = () => cb(null); img.src = url;
+}
+function zetMachinist(){
+  const deel = trein.delen[0], model = deel.auto.children[0], cp = CAB[trein.type];
+  if (deel.machinist){ model.remove(deel.machinist); deel.cabDelen = deel.cabDelen.filter(m => m !== deel.machinist); }
+  const RUITHOOGTE = {sng:2.25, virm:2.62, e320:2.95};   // midden van de voorruit, daar zit het gezicht
+  const g = new THREE.Group(), y = RUITHOOGTE[trein.type] || cp.y - 0.08, z = deel.zKop + cp.z + 0.12;
+  const uniform = mensMat(0x1b2a4a), huid = mensMat(0xe8b996);
+  const romp = new THREE.Mesh(G.bol, uniform); romp.scale.set(0.26, 0.34, 0.17); romp.position.set(0, y - 0.42, z - 0.05); g.add(romp);
+  for (const k of [-1, 1]){ const arm = new THREE.Mesh(G.cil, uniform); arm.scale.set(0.06, 0.38, 0.06); arm.position.set(k*0.24, y - 0.5, z + 0.12); arm.rotation.x = 1.1; g.add(arm); }
+  const kraag = new THREE.Mesh(G.cil, mensMat(0xf4f4f0)); kraag.scale.set(0.08, 0.06, 0.07); kraag.position.set(0, y - 0.14, z - 0.02); g.add(kraag);
+  const hoofd = new THREE.Mesh(G.bol, huid); hoofd.scale.set(0.11, 0.13, 0.12); hoofd.position.set(0, y, z - 0.02); g.add(hoofd);
+  const gezicht = new THREE.Mesh(new THREE.CircleGeometry(0.17, 32), new THREE.MeshBasicMaterial({map:machinistTex, transparent:true, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-8}));
+  if (trein.type === 'icm'){
+    // Koploper: de cabinekap is dicht, dus het gezicht zit direct achter de schuine voorruit, met dezelfde helling
+    g.clear(); const nu = 0.817, nv = 0.577, vm = 3.86, um = 2.05 - 0.6*(vm - 3.55)/0.85; gezicht.scale.setScalar(1.3); gezicht.position.set(0, vm + nv*0.235, deel.zKop + um + nu*0.235);   // net onder het glas (de kap heeft 0,2 m afronding) gezicht.rotation.x = -Math.atan2(nv, nu);
+  } else { gezicht.scale.setScalar(1.15); gezicht.position.set(0, y + 0.02, z + 0.17); }
+  g.add(gezicht);
+  model.add(g); deel.machinist = g; deel.cabDelen.push(g);
+}
+function laadMachinist(){ maakGezichtTex(t => { if (machinistTex) machinistTex.dispose(); machinistTex = t; zetMachinist(); toonFotoVoorbeeld(); }); }
+function toonFotoVoorbeeld(){ const url = leesFoto(); $('mfVoorbeeld').style.backgroundImage = url ? `url(${url})` : ''; $('mfWeg').hidden = !url; }
+laadMachinist();
 const TREINNUMMER = {icm:4011, virm:9471, sng:2308, e320:4019};
 function zetTreinType(type){
   if (trein.type === type) return;
@@ -1997,6 +2073,7 @@ function zetTreinType(type){
   trein = maakTreinstel(type, TREINNUMMER[type], true);
   maakCabine(trein.delen[0].auto, trein.delen[0].zKop);
   cabine.groep.position.set(0, CAB[type].y - CAB.icm.y, CAB[type].z - CAB.icm.z);
+  zetMachinist();
   camKlaar = false;
 }
 const BEELDEN = ['cabine','volg','kop','zij'], BEELDNAAM = {cabine:'Cabine', volg:'Achter', kop:'Voorkant', zij:'Naast'};
@@ -2373,7 +2450,30 @@ function vulStart(){
   $('stat').textContent = `${(prog.bezocht || []).length} van de ${NET.ST.length} stations bezocht · ${Math.round(prog.km || 0)} km gereden` + (tot.totaal ? ` · ${tot.goed} van ${tot.totaal} sommen in één keer goed` : '');
   tekenKaart();
 }
+// foto kiezen en uitsnijden; alleen in deze browser bewaard
+const FD = {x:0.5, y:0.35, r:0.4};
+function tekenCirkel(){ const img = $('fdImg'), w = img.clientWidth, h = img.clientHeight, c = $('fdCirkel'), d = FD.r*Math.min(w, h);
+  Object.assign(c.style, {width:d + 'px', height:d + 'px', left:(FD.x*w - d/2) + 'px', top:(FD.y*h - d/2) + 'px'}); }
+function zetFotoKnoppen(){
+  $('mfBestand').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (!f) return;
+    const lezer = new FileReader(); lezer.onload = () => { $('fdImg').onload = () => { FD.x = 0.5; FD.y = 0.33; FD.r = 0.42; $('fdMaat').value = FD.r; $('fotoDialoog').hidden = false; requestAnimationFrame(tekenCirkel); };
+      $('fdImg').src = lezer.result; }; lezer.readAsDataURL(f); e.target.value = ''; });
+  const veld = $('fdVeld'); let sleep = false;
+  const zet = e => { const r = $('fdImg').getBoundingClientRect(); FD.x = clamp((e.clientX - r.left)/r.width, 0, 1); FD.y = clamp((e.clientY - r.top)/r.height, 0, 1); tekenCirkel(); };
+  veld.addEventListener('pointerdown', e => { sleep = true; try { veld.setPointerCapture(e.pointerId); } catch (_) {} zet(e); });
+  veld.addEventListener('pointermove', e => { if (sleep) zet(e); });
+  for (const ev of ['pointerup', 'pointercancel']) veld.addEventListener(ev, () => { sleep = false; });
+  $('fdMaat').addEventListener('input', () => { FD.r = Number($('fdMaat').value); tekenCirkel(); });
+  $('fdAnnuleer').onclick = () => { $('fotoDialoog').hidden = true; };
+  $('fdOk').onclick = () => { const img = $('fdImg'), W = img.naturalWidth, H = img.naturalHeight, d = FD.r*Math.min(W, H);
+    const c = document.createElement('canvas'); c.width = c.height = 256; c.getContext('2d').drawImage(img, FD.x*W - d/2, FD.y*H - d/2, d, d, 0, 0, 256, 256);
+    try { localStorage.setItem(FOTO_SLEUTEL, c.toDataURL('image/jpeg', 0.85)); } catch (e) { melding('Bewaren lukte niet in deze browser'); }
+    $('fotoDialoog').hidden = true; laadMachinist(); };
+  $('mfWeg').onclick = () => { try { localStorage.removeItem(FOTO_SLEUTEL); } catch (e) {} laadMachinist(); };
+  addEventListener('resize', () => { if (!$('fotoDialoog').hidden) tekenCirkel(); });
+}
 function zetStartKnoppen(){
+  zetFotoKnoppen();
   const dl = $('stLijst'); dl.innerHTML = NET.ST.map(s => `<option value="${s.naam}">`).join('');
   $('kaart').addEventListener('click', e => { const s = stationBijKlik(e); if (!s) return;
     if (KAART.kies === 'van'){ KAART.kies = 'naar'; wijzigReis(s, s === REIS.naar ? REIS.van : REIS.naar); }
