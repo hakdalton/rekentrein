@@ -4,8 +4,9 @@ const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const data = html.match(/<script type="application\/json" id="netwerk">(.*?)<\/script>/s)[1];
 const a = html.indexOf('/* =========================================================\n   Spoornet van Nederland'), b = html.indexOf('/* ---------- sprongen op de getallenlijn');
 globalThis.window = {NETWERK: JSON.parse(data)};
-const f = new Function('clamp', 'R', 'SIGSP', 'RITTEN', 'prog', '$', html.slice(a, b) + '; return {NET, maakReis};');
-const {NET, maakReis} = f((x, lo, hi) => Math.max(lo, Math.min(hi, x)), lo => lo, 700, [], {}, () => null);
+const TREINEN = {icm:{sein:700}, virm:{sein:700}, sng:{sein:700}, e320:{sein:2100}};
+const f = new Function('clamp', 'R', 'SIGSP', 'RITTEN', 'prog', '$', 'TREINEN', html.slice(a, b) + '; return {NET, maakReis};');
+const {NET, maakReis} = f((x, lo, hi) => Math.max(lo, Math.min(hi, x)), lo => lo, 700, [], {}, () => null, TREINEN);
 const st = n => NET.opNaam.get(n.toLowerCase());
 let fout = 0;
 const verwacht = [
@@ -13,6 +14,7 @@ const verwacht = [
   ['Den Haag Centraal', 'Groningen', true, ['Zwolle'], 230, 280],
   ['Den Haag Centraal', 'Maastricht', true, ['Eindhoven Centraal'], 210, 245],
   ['Roosendaal', 'Vlissingen', false, ['Goes'], 65, 85],
+  ['Amsterdam Centraal', 'Rotterdam Centraal', 'es', ['Schiphol Airport'], 55, 95],
 ];
 for (const [van, naar, ic, via, kmMin, kmMax] of verwacht){
   const r = maakReis(st(van), st(naar), ic), namen = r ? r.stops.map(s => s.naam) : [];

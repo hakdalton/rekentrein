@@ -138,6 +138,8 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 .h-tijd{display:inline-block;width:46px;font:700 15px system-ui,sans-serif;color:var(--blauw)}
 .soort{display:flex;gap:6px}
 .soort{margin-top:10px}
+.soort.materieel button{font-size:13px;padding:5px 10px}
+.soort[hidden]{display:none}
 .soort button{flex:1;border:1px solid var(--lijn);background:var(--wit);color:var(--blauw);border-radius:999px;padding:7px 12px;font-size:15px;font-weight:700}
 .soort button[aria-pressed="true"]{background:var(--blauw);color:var(--wit);border-color:var(--blauw)}
 .kaartvak{background:rgba(255,255,255,.06);border-radius:14px;padding:6px}
@@ -253,7 +255,7 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 </div>
 
 <header id="balk" hidden>
-  <span class="ic">IC</span><span id="bRichting">Intercity</span>
+  <span class="ic" id="bSoort">IC</span><span id="bRichting">Intercity</span>
   <div class="b-rit"><span id="bVan"></span><div class="b-spoor" id="bSpoor"><div id="bVoortgang"></div></div><span id="bNaar"></span></div>
   <div class="b-snel"><b id="bKmu">0</b><small>km/u</small><span class="hendel" id="bHendel">hendel 0</span></div>
   <div class="b-knoppen">
@@ -301,7 +303,8 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
         <button class="wissel" id="kWissel" type="button" aria-label="Van en naar omdraaien" title="Omdraaien">⇅</button>
         <datalist id="stLijst"></datalist>
       </div>
-      <div class="soort"><button id="kIC" type="button">Intercity</button><button id="kSpr" type="button">Sprinter</button></div>
+      <div class="soort"><button id="kIC" type="button">Intercity</button><button id="kSpr" type="button">Sprinter</button><button id="kES" type="button">Eurostar</button></div>
+      <div class="soort materieel" id="materieel"><button id="kICM" type="button">Koploper</button><button id="kVIRM" type="button">VIRM</button></div>
       <p class="vertrek" id="pVertrek"></p>
     </section>
     <section class="advies" aria-label="Reisadvies">
@@ -352,7 +355,7 @@ function rng(seed){ let a = seed>>>0; return () => { a |= 0; a = a + 0x6D2B79F5 
 /* =========================================================
    Route en rekenvaardigheden (De Wereld in Getallen, groep 5, blok 1)
    ========================================================= */
-const SIGSP = 700, CH = 200, RAIL_Y = 0.9, SPOOR2 = -4.5;
+let SIGSP = 700; const CH = 200, RAIL_Y = 0.9, SPOOR2 = -4.5;
 const SKILLS = {
   tientallen:{naam:'Tientallen erbij en eraf', vb:'48 + 20   ·   65 − 30'},
   aanvulT:   {naam:'Aanvullen tot het volgende tiental', vb:'54 + ? = 60'},
@@ -455,7 +458,11 @@ const NET = (() => {
    opgerekt of ingekort tot 4 t/m 9 seinafstanden. Kopmaken draait de wereld een halve slag, zodat het spoor doorloopt. */
 const IC_TYPES = /intercity|megastation/i;
 let REIS = null;
-function maakReis(van, naar, ic){
+const ES_STATIONS = new Set(['ASD', 'SHL', 'RTD']);   // de Eurostar stopt in Nederland alleen hier
+const treinVoorSoort = (soort, voorkeur) => soort === 'spr' ? 'sng' : soort === 'es' ? 'e320' : (voorkeur === 'virm' ? 'virm' : 'icm');
+function maakReis(van, naar, soort, treinType){
+  if (typeof soort === 'boolean') soort = soort ? 'ic' : 'spr';
+  const ic = soort !== 'spr'; treinType = treinType || treinVoorSoort(soort); SIGSP = TREINEN[treinType].sein;
   const pad = NET.route(van, naar); if (!pad) return null;
   const L = NET.L, pts = [], passages = [{st:van, r:0}], keer = [];
   let r = 0, vorigeKop = null;
@@ -486,7 +493,7 @@ function maakReis(van, naar, ic){
     const kopHier = keerR.some(k => Math.abs(k - p.r) < 700);
     const laatste = stops[stops.length-1];
     if (laatste && (laatste.st === p.st || p.r - laatste.r < 350)){ if (kopHier) laatste.kop = true; continue; }
-    if (p.st === naar || p === passages[0] || kopHier || !ic || IC_TYPES.test(p.st.type)) stops.push({st:p.st, naam:p.st.naam, code:p.st.code, r:p.r, kop:kopHier});
+    if (p.st === naar || p === passages[0] || (soort === 'es' ? ES_STATIONS.has(p.st.code) : kopHier || !ic || IC_TYPES.test(p.st.type))) stops.push({st:p.st, naam:p.st.naam, code:p.st.code, r:p.r, kop:kopHier});
     if (p.st === naar) break;
   }
   if (stops[stops.length-1].st !== naar) stops.push({st:naar, naam:naar.naam, code:naar.code, r:Rtot, kop:false});
@@ -508,7 +515,7 @@ function maakReis(van, naar, ic){
   const glad = (src, w) => { const out = new Float64Array(src.length), c = new Float64Array(src.length + 1); for (let i = 0; i < src.length; i++) c[i+1] = c[i] + src[i];
     for (let i = 0; i < src.length; i++){ const a = Math.max(0, i - w), b = Math.min(src.length, i + w + 1); out[i] = (c[b] - c[a])/(b - a); } return out; };
   const koersR = glad(glad(hk, 6), 6);
-  const reis = {van, naar, ic, stops, S, pts, Rtot, koersR, keer:keerR,
+  const reis = {van, naar, ic, soort, trein:treinType, stops, S, pts, Rtot, koersR, keer:keerR,
     lengte: S[S.length-1], km: Rtot/1000};
   reis.rVan = s => {
     if (s <= 0) return 0; if (s >= reis.lengte) return Rtot;
@@ -525,7 +532,8 @@ function maakReis(van, naar, ic){
 }
 const stopNaam = g => REIS.stops[clamp(g, 0, REIS.stops.length - 1)].naam;
 const eindNaam = () => REIS.stops[REIS.stops.length - 1].naam;
-const treinSoort = () => REIS && !REIS.ic ? 'Sprinter' : 'Intercity';
+const treinSoort = () => !REIS ? 'Intercity' : REIS.soort === 'es' ? 'Eurostar' : REIS.ic ? 'Intercity' : 'Sprinter';
+const soortKort = () => !REIS ? 'IC' : REIS.soort === 'es' ? 'ES' : REIS.ic ? 'IC' : 'SPR';
 const nStops = () => REIS.stops.length - 1;
 function seinIdsVan(g){ const a = REIS.S[g], b = REIS.S[g+1], ids = []; if (b === undefined) return ids; for (let s = a + SIGSP; s < b - 1; s += SIGSP) ids.push(Math.round(s/SIGSP)); return ids; }
 const nSein = g => seinIdsVan(g).length;
@@ -1216,13 +1224,177 @@ function maakEenheid(nummer, metInfo){
 const _a = {}, _b = {};
 function plaatsEenheid(e, sVoor, richting, off){
   e.delen.forEach((d, i) => {
-    const sc = sVoor - richting*AUTO_OFFS[i];
+    const sc = sVoor - richting*(e.offs || AUTO_OFFS)[i];
     padOp(sc + richting*9.5, _a); padOp(sc - richting*9.5, _b);
     const hx = _a.x - _b.x, hz = _a.z - _b.z, h = Math.atan2(hx, hz), hm = (_a.h + _b.h)/2;
     d.auto.position.set((_a.x+_b.x)/2 - Math.cos(hm)*off, RAIL_Y, (_a.z+_b.z)/2 + Math.sin(hm)*off);
     d.auto.rotation.y = h;
   });
 }
+
+/* =========================================================
+   Meer treinen: Sprinter (SNG), VIRM-dubbeldekker en Eurostar (e320).
+   Zelf nagebouwd naar foto's van Wikimedia Commons; zelfde aansturing als de Koploper.
+   Maten in rijtuigcoördinaten: x dwars (halve breedte b), y omhoog (0 = onderkant draaistel), z vooruit.
+   ========================================================= */
+const TREINEN = {
+  icm:  {naam:'Koploper', kort:'ICM', vmax:140, sein:700,  acc:0.9, rem:1.1},
+  virm: {naam:'VIRM-dubbeldekker', kort:'VIRM', vmax:160, sein:700, acc:0.8, rem:1.15},
+  sng:  {naam:'Sprinter (SNG)', kort:'SNG', vmax:160, sein:700, acc:1.1, rem:1.25},
+  e320: {naam:'Eurostar', kort:'e320', vmax:300, sein:2100, acc:1.0, rem:1.65},
+};
+const kleurMat = c => std(c, {roughness:.45, side:DS2});
+// gesloten ring van een afgeronde rechthoek (dwarsdoorsnede), n punten, tegen de klok in vanaf onder-midden
+function ringPunten(b, yo, yb, rb, ro, n){
+  const pts = [], hoeken = [[b - ro, yo + ro, -Math.PI/2, 0, ro], [b - rb, yb - rb, 0, Math.PI/2, rb], [-(b - rb), yb - rb, Math.PI/2, Math.PI, rb], [-(b - ro), yo + ro, Math.PI, 1.5*Math.PI, ro]];
+  // omtrek als lijst segmenten, dan gelijkmatig bemonsteren
+  const seg = []; let vorig = [0, yo];
+  for (const [cx, cy, a0, a1, r] of hoeken){ const start = [cx + Math.cos(a0)*r, cy + Math.sin(a0)*r]; seg.push([vorig, start]);
+    for (let i = 1; i <= 8; i++){ const a = a0 + (a1 - a0)*i/8, p = [cx + Math.cos(a)*r, cy + Math.sin(a)*r]; seg.push([i === 1 ? start : seg[seg.length-1][1], p]); }
+    vorig = seg[seg.length-1][1]; }
+  seg.push([vorig, [0, yo]]);
+  const lens = seg.map(([a, c]) => Math.hypot(c[0]-a[0], c[1]-a[1])), tot = lens.reduce((s, l) => s + l, 0);
+  for (let i = 0; i < n; i++){ let d = tot*i/n, k = 0; while (d > lens[k] && k < seg.length - 1){ d -= lens[k]; k++; }
+    const [a, c] = seg[k], t = lens[k] ? d/lens[k] : 0; pts.push([a[0] + (c[0]-a[0])*t, a[1] + (c[1]-a[1])*t]); }
+  return pts;
+}
+// loft door doorsneden {u, b, yo, yb, rb, ro}; kleur per punt via kleurFn(x, y, u, relatief) → [r,g,b]; voorkant dicht
+function loft(secties, kleurFn, n = 112){
+  const ringen = secties.map(s => ringPunten(s.b, s.yo, s.yb, s.rb, s.ro, n).map(([x, y]) => [x, y, s.u]));
+  // voorkant in concentrische ringen, zodat ruit en banden scherp gekleurd kunnen worden
+  { const r0 = ringen[ringen.length-1], cy = r0.reduce((t, p) => t + p[1], 0)/n;
+    for (let k = 1; k <= 16; k++){ const f = 1 - k/16.5; ringen.push(r0.map(([x, y, z]) => [x*f, cy + (y - cy)*f, z + 0.01*k])); } }
+  const pos = [], kl = [], idx = [];
+  const zet = (p, rel) => { pos.push(p[0], p[1], p[2]); kl.push(...kleurFn(p[0], p[1], p[2], rel)); };
+  ringen.forEach((r, i) => r.forEach(p => zet(p, i/(ringen.length - 1))));
+  for (let i = 0; i < ringen.length - 1; i++) for (let j = 0; j < n; j++){ const a = i*n + j, b = i*n + (j+1)%n, c = a + n, d = b + n; idx.push(a, c, b, b, c, d); }
+  // dop op de voorkant
+  const laatst = ringen[ringen.length-1], mid = [0, laatst.reduce((s, p) => s + p[1], 0)/n, laatst[0][2] + 0.02], mi = pos.length/3; zet(mid, 1);
+  for (let j = 0; j < n; j++) idx.push((ringen.length-1)*n + j, mi, (ringen.length-1)*n + (j+1)%n);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(kl, 3)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, std(0xffffff, {vertexColors:true, roughness:.42, side:DS2})); m.material.userData.eigen = true; m.userData.eigen = true; m.castShadow = m.receiveShadow = true; return m;
+}
+const rgb = h => { const c = new THREE.Color(h); return [c.r, c.g, c.b]; };
+// zijvlak (sticker) op beide zijkanten bij halve breedte b
+function zijB(groep, b, w, h, mat, z, y, eps = 0.006){ for (const kant of [1,-1]){ const m = vlak(w, h, mat); m.rotation.y = Math.PI/2; m.position.set(kant*(b + eps), y, z); groep.add(m); } }
+function draaistel(model, z, wielen, wielbasis = 2.5){ const ds = new THREE.Group(); ds.position.set(0, 0, z); model.add(ds); ds.add(doos(2.4, 0.4, wielbasis + 0.6, M.wiel, 0, 0.62, 0));
+  for (const wz of [-wielbasis/2, wielbasis/2]) for (const wx of [-0.78, 0.78]){ const w = new THREE.Mesh(G.wiel, M.wiel); w.position.set(wx, 0.46, wz); ds.add(w); wielen.push(w); } }
+function deurPaar(model, b, z, deuren, matOnder, matBoven, yOnder, hoogte){
+  for (const kant of [1,-1]){ const deur = new THREE.Group(); deur.position.set(kant*(b + 0.012), 0, z); deur.userData = {z0:z, kant};
+    for (const zz of [-0.34, 0.34]){ const blad = new THREE.Group(); blad.position.z = zz; blad.userData.z0 = zz;
+      const v = vlak(0.66, hoogte, matOnder); v.rotation.y = Math.PI/2; v.position.set(kant*0.004, yOnder + hoogte/2, 0); blad.add(v);
+      const r = vlak(0.36, hoogte*0.45, M.zijglas); r.rotation.y = Math.PI/2; r.position.set(kant*0.008, yOnder + hoogte*0.68, 0); blad.add(r);
+      if (matBoven){ const t = vlak(0.66, 0.06, matBoven); t.rotation.y = Math.PI/2; t.position.set(kant*0.006, yOnder + hoogte - 0.03, 0); blad.add(t); }
+      deur.add(blad); deuren.push(blad); }
+    model.add(deur); }
+}
+function stroomafnemer(model, z, yDak){ model.add(doos(1.4, 0.18, 1.6, M.mast, 0, yDak + 0.08, z));
+  const a = new THREE.Vector3(0, yDak + 0.15, z + 0.6), k = new THREE.Vector3(0, yDak + 1.0, z - 0.9), c = new THREE.Vector3(0, yDak + 1.5, z + 0.4);
+  model.add(staaf(a, k, 0.05, M.mast), staaf(k, c, 0.035, M.mast), doos(1.6, 0.06, 0.12, M.zwartM, 0, yDak + 1.52, z + 0.4)); }
+function bestemmingBord(model, info, y, z, breed = 1.0){ if (!info) return null;
+  const t = tekstTex('Intercity', {w:256,h:40,bg:'#0b0b0b',fg:'#ffb21a',font:'700 28px Atkinson Hyperlegible, monospace'});
+  const m = vlak(breed, breed*0.16, new THREE.MeshBasicMaterial({map:t, side:DS2})); m.position.set(0, y, z); model.add(m); info.bestemming = t; return m; }
+function koplampen(model, b, y, z, achter, afstand = 0.75){ for (const kant of [1,-1]){ const l = new THREE.Mesh(G.bol, achter ? M.lampR : M.lampW); l.scale.set(0.11, 0.08, 0.04); l.position.set(kant*afstand, y, z); model.add(l); } }
+
+// één rijtuig van een modern treinstel; soort 'kop' of 'mid'
+function maakModernRijtuig(type, soort, nummer, achterkant, info){
+  const auto = new THREE.Group(), model = new THREE.Group(); auto.add(model); if (achterkant) model.rotation.y = Math.PI;
+  const kop = soort === 'kop', wielen = [], deuren = [], cabDelen = [];
+  let L, b, yo, yb, kleurBak, neusLengte = 0;
+  if (type === 'sng'){ L = kop ? 20.5 : 19.5; b = 1.41; yo = 0.62; yb = 3.95; kleurBak = 0x1f4fbf; }
+  else if (type === 'virm'){ L = kop ? 24.5 : 26.4; b = 1.40; yo = 0.6; yb = 4.6; kleurBak = 0xFFC200; }
+  else { L = kop ? 18.5 : 24.4; b = 1.46; yo = 0.62; yb = 3.9; kleurBak = 0x2a3b5c; }
+  const zKop = L/2;
+  // bak: afgeronde doorsnede, over de hele lengte
+  { const s = new THREE.Shape(), r = ringPunten(b, yo, yb, type === 'virm' ? 0.75 : 0.6, 0.22, 48); s.moveTo(...r[0]); r.slice(1).forEach(p => s.lineTo(...p)); s.closePath();
+    const g = new THREE.ExtrudeGeometry(s, {depth:L, bevelEnabled:false}); g.translate(0, 0, -L/2); const bak = new THREE.Mesh(g, kleurMat(kleurBak)); bak.material.userData.eigen = true; bak.castShadow = bak.receiveShadow = true; model.add(bak);
+    // dak in een eigen kleur
+    const d = doos(b*1.25, 0.08, L - 0.2, std(type === 'virm' ? 0x4c535c : type === 'sng' ? 0xb9bec4 : 0x6f7884, {roughness:.6}), 0, yb - 0.02, 0); d.material.userData.eigen = true; model.add(d); }
+  const zij = (w, h, mat, z, y, eps) => zijB(model, b, w, h, mat, z, y, eps);
+  const mk = c => { const m = kleurMat(c); m.userData.eigen = true; return m; };
+  // beschildering per type
+  if (type === 'sng'){
+    zij(L - 0.4, 0.62, mk(0xf3f5f7), 0, 0.95, 0.004);   // witte onderkant
+    zij(L - 0.4, 0.07, mk(0xFFC200), 0, 1.3, 0.006);     // geel biesje
+    for (let z = -L/2 + 2.2; z < L/2 - 1.2; z += 1.75) if (Math.abs(z) > 1.3 || soort === 'mid') zij(1.2, 1.0, M.zijglas, z, 2.35, 0.01);
+    deurPaar(model, b, kop ? -L/2 + 3 : 0, deuren, M.geelD, null, 0.75, 2.05);
+    if (soort === 'mid') stroomafnemer(model, -5, yb);
+  } else if (type === 'virm'){
+    const blauw = mk(0x1a3c9c);
+    zij(L - 6.8, 0.78, blauw, kop ? -2.5 : 0, 1.55, 0.004); zij(L - 6.8, 0.72, blauw, kop ? -2.5 : 0, 3.25, 0.004);   // raambanden onder- en bovendek
+    for (let z = -L/2 + 4.2; z < L/2 - 4.4 - (kop ? 2 : 0); z += 1.9){ zij(1.35, 0.5, M.zijglas, z, 1.55, 0.01); zij(1.35, 0.48, M.zijglas, z, 3.25, 0.01); }
+    for (const dz of [-L/2 + 2.2, kop ? zKop - 3.4 : L/2 - 2.2]){ zij(1.6, 1.25, blauw, dz, 2.75, 0.005); deurPaar(model, b, dz, deuren, M.geelD, null, 0.7, 2.1); }
+    if (soort === 'mid'){ stroomafnemer(model, 6, yb); const t = tekstTex('1',{w:64,h:64,bg:'#1a3c9c',fg:'#FFC917',font:'700 54px Fredoka, sans-serif'}); zij(0.32, 0.32, new THREE.MeshBasicMaterial({map:t, side:DS2}), L/2 - 3.2, 3.25, 0.014); }
+  } else {
+    zij(L - 0.3, 0.9, mk(0x8f98a5), 0, 1.15, 0.004);      // grijze onderkant
+    zij(L - 0.3, 0.08, mk(0xFFC200), 0, 1.66, 0.006);     // gele streep
+    for (let z = -L/2 + 1.6; z < L/2 - 1.0 - (kop ? 2 : 0); z += 2.1) zij(1.5, 0.62, M.zijglas, z, 2.35, 0.01);
+    deurPaar(model, b, -L/2 + 1.6, deuren, mk(0x2a3b5c), null, 0.85, 2.0);
+    if (soort === 'mid') stroomafnemer(model, 4, yb);
+  }
+  // draaistellen (bij SNG en Eurostar gedeeld tussen de bakken: hier één per bakeinde)
+  const wb = type === 'e320' ? 2.5 : 2.6;
+  if (type === 'virm'){ draaistel(model, -L/2 + 3, wielen, wb); draaistel(model, L/2 - 3, wielen, wb); }
+  else { draaistel(model, -L/2 + 0.6, wielen, wb); if (kop) draaistel(model, L/2 - 2.6, wielen, wb); }
+  // balg naar het volgende rijtuig
+  for (const e of kop ? [-L/2] : [-L/2, L/2]) model.add(doos(2.2, 2.9, 0.5, M.zwart, 0, 2.3, e + Math.sign(e)*0.2));
+  // de kop
+  if (kop){
+    const lamp = achterkant;
+    if (type === 'sng'){
+      neusLengte = 1.25;
+      const S = [[0,1,0],[0.35,0.99,0.02],[0.7,0.96,0.1],[0.95,0.91,0.25],[1.12,0.84,0.5],[1.25,0.72,0.85]].map(([u, f, t]) => ({u:zKop + u, b:b*f, yo:yo + 0.05*u, yb:yb - t*0.9 - 0.05, rb:0.55, ro:0.25}));
+      const neus = loft(S, (x, y, z, rel) => { const u = z - zKop;
+        if (y > 1.75 && y < 3.25 - u*0.45 && Math.abs(x) < b*0.86 && u > 0.25) return rgb(0x10151c);   // grote voorruit
+        if (y < 0.95) return rgb(0x3b4048); if (y < 1.45) return rgb(0xf3f5f7); if (y < 1.52) return rgb(0xFFC200); return rgb(0x1f4fbf); });
+      model.add(neus); cabDelen.push(neus);
+      const bord = bestemmingBord(model, info, 3.0, zKop + 1.43, 0.9); if (bord) cabDelen.push(bord);
+      koplampen(model, b, 1.68, zKop + 1.43, lamp, 0.78);
+      model.add(doos(0.9, 0.35, 0.3, M.zwartM, 0, 0.92, zKop + 1.38));   // koppeling
+      const logo = tekstTex('⇄', {w:64,h:32,bg:'#1f4fbf',fg:'#ffffff',font:'700 26px sans-serif'}); const lm = vlak(0.32, 0.16, new THREE.MeshBasicMaterial({map:logo})); lm.position.set(0, 1.62, zKop + 1.43); model.add(lm);
+    } else if (type === 'virm'){
+      neusLengte = 1.7;
+      const S = [[0,1,0],[0.4,0.99,0.05],[0.8,0.97,0.25],[1.15,0.93,0.55],[1.45,0.86,1.0],[1.7,0.74,1.55]].map(([u, f, t]) => ({u:zKop + u, b:b*f, yo:yo + 0.06*u, yb:yb - t*1.3 - 0.02, rb:0.7, ro:0.3}));
+      const neus = loft(S, (x, y, z) => { const u = z - zKop;
+        if (y > 2.25 && y < 3.35 - u*0.25 && Math.abs(x) < b*0.82 && u > 0.5) return rgb(0x10151c);   // voorruit
+        if (y > 2.05 && u > 0.15) return rgb(0x7a828c);   // grijze kap
+        if (y < 0.9) return rgb(0x3b4048); return rgb(0xFFC200); });
+      model.add(neus); cabDelen.push(neus);
+      const bord = bestemmingBord(model, info, 3.22, zKop + 1.88, 1.0); if (bord) cabDelen.push(bord);
+      for (const kant of [1,-1]) for (const dx of [0, 0.22]){ const l = new THREE.Mesh(G.bol, lamp && dx ? M.lampR : M.lampW); l.scale.set(0.09, 0.09, 0.04); l.position.set(kant*(0.95 - dx), 1.5, zKop + 1.88); model.add(l); }
+      model.add(doos(1.0, 0.55, 0.12, M.zwartM, 0, 1.02, zKop + 1.86), doos(0.4, 0.3, 0.4, M.zwartM, 0, 1.0, zKop + 1.95));
+    } else {
+      neusLengte = 6.8;
+      const S = [];
+      for (let i = 0; i <= 14; i++){ const t = i/14, u = t*6.8;
+        S.push({u:zKop + u, b:b*(1 - 0.62*Math.pow(t, 2.2)), yo:yo + 0.12*t, yb:yb - 2.6*Math.pow(t, 1.6) - 0.05*t, rb:0.6 - 0.25*t, ro:0.22 + 0.15*t}); }
+      const neus = loft(S, (x, y, z) => { const u = z - zKop, top = yb - 2.6*Math.pow(u/6.8, 1.6);
+        if (u > 2.6 && u < 4.9 && y > top - 0.55 && Math.abs(x) < 0.9) return rgb(0x0f141b);   // voorruit
+        if (u > 5.6) return rgb(0x8f98a5);                                                         // grijze punt
+        if (u > 1.4 && y > 1.25) return rgb(0xFFC200);                                              // geel rond de ruit
+        if (y < 1.66) return rgb(0x8f98a5); return rgb(0x2a3b5c); }, 72);
+      model.add(neus); cabDelen.push(neus);
+      const bord = bestemmingBord(model, info, 2.3, zKop + 5.2, 0.8); if (bord){ bord.rotation.x = -1.15; cabDelen.push(bord); }
+      koplampen(model, b, 1.25, zKop + 5.75, lamp, 0.8);
+    }
+    const nt = tekstTex(String(nummer), {w:128,h:40,bg:'#1d2633',fg:'#ffffff',font:'700 26px Atkinson Hyperlegible, sans-serif'});
+    zijB(model, b, 0.6, 0.18, new THREE.MeshBasicMaterial({map:nt, side:DS2}), zKop - 1.2, type === 'virm' ? 0.95 : 0.85, 0.015);
+  }
+  model.traverse(o => { if (o.isMesh && o.material !== M.glas) o.castShadow = true; });
+  return {auto, wielen, deuren, cabDelen, lengte:L, zKop, neusLengte};
+}
+// cabinepositie per trein: oog van de machinist (y, z t.o.v. zKop) en verschuiving van de lessenaar t.o.v. de Koploper
+const CAB = {icm:{y:4.08, z:1.0}, sng:{y:2.85, z:0.55}, virm:{y:3.05, z:0.9}, e320:{y:2.75, z:2.4}};
+function maakTreinstel(type, nummer, metInfo){
+  if (type === 'icm'){ const e = maakEenheid(nummer, metInfo); e.type = 'icm'; e.offs = AUTO_OFFS; return e; }
+  const info = metInfo ? {} : null, n = type === 'e320' ? 5 : type === 'sng' ? 4 : 4;
+  const delen = Array.from({length:n}, (_, i) => maakModernRijtuig(type, i === 0 || i === n - 1 ? 'kop' : 'mid', nummer, i === n - 1, i === 0 ? info : null));
+  const offs = []; let z = delen[0].lengte/2 + delen[0].neusLengte;
+  delen.forEach((d, i) => { if (i > 0) z += delen[i-1].lengte/2 + d.lengte/2 + 0.6; offs.push(z); });
+  const groep = new THREE.Group(); delen.forEach(d => groep.add(d.auto)); scene.add(groep);
+  return {type, groep, delen, info, offs, wielen: delen.flatMap(d => d.wielen), deuren: delen.flatMap(d => d.deuren)};
+}
+function ruimTreinstel(e){ scene.remove(e.groep); e.groep.traverse(o => { if (o.userData.eigen && o.geometry) o.geometry.dispose(); if (o.material && o.material.userData && o.material.userData.eigen){ o.material.map && o.material.map.dispose(); o.material.dispose(); } }); }
 
 /* ---------- de cabine (binnenkant, zichtbaar in cabinebeeld) ---------- */
 const cabine = { groep:new THREE.Group(), snelTex:null, infoTex:null, hendel:null };
@@ -1256,9 +1428,9 @@ function tekenCabineSchermen(){
   const kmu = Math.round(spel.v*3.6);
   { const c = cabine.snelTex.userData.canvas.getContext('2d'); c.fillStyle='#0d1116'; c.fillRect(0,0,256,256);
     c.strokeStyle='#3b4552'; c.lineWidth=14; c.beginPath(); c.arc(128,140,92,Math.PI*0.75,Math.PI*2.25); c.stroke();
-    c.strokeStyle='#ffc917'; c.beginPath(); c.arc(128,140,92,Math.PI*0.75,Math.PI*0.75 + Math.PI*1.5*Math.min(1,kmu/160)); c.stroke();
+    c.strokeStyle='#ffc917'; c.beginPath(); const vm = TT().vmax > 160 ? 320 : 160; c.arc(128,140,92,Math.PI*0.75,Math.PI*0.75 + Math.PI*1.5*Math.min(1,kmu/vm)); c.stroke();
     c.fillStyle='#d9e2ee'; c.font='600 16px Atkinson Hyperlegible, sans-serif'; c.textAlign='center';
-    for (let v=0; v<=160; v+=40){ const a = Math.PI*0.75 + Math.PI*1.5*v/160; c.fillText(v, 128+Math.cos(a)*62, 146+Math.sin(a)*62); }
+    for (let v=0; v<=vm; v+=vm/4){ const a = Math.PI*0.75 + Math.PI*1.5*v/vm; c.fillText(v, 128+Math.cos(a)*62, 146+Math.sin(a)*62); }
     c.fillStyle='#ffffff'; c.font='700 54px Fredoka, sans-serif'; c.fillText(kmu, 128, 160); c.font='600 18px Atkinson Hyperlegible, sans-serif'; c.fillText('km/u', 128, 186);
     cabine.snelTex.needsUpdate = true; }
   { const c = cabine.infoTex.userData.canvas.getContext('2d'); c.fillStyle='#0b1e3f'; c.fillRect(0,0,320,200);
@@ -1669,8 +1841,17 @@ function bouwOverweg(g, s){
    ========================================================= */
 const spel = { hendel:0, reizigers:prog.reizigers, ritWissel:0, ritSein:3, modus:'laden', s:0, v:0, g:0, reeks:0, q:null, seinId:null, poging:0, invoer:'', hulpZichtbaar:false,
   t:0, segGoed:0, beeld:prog.beeld, baan:0, klikS:0, tegenTrein:null, tegenTijd:40, aankomstT:0, deurOpen:0 };
-const trein = maakEenheid(4011, true);
+let trein = maakTreinstel('icm', 4011, true);
 maakCabine(trein.delen[0].auto, trein.delen[0].zKop);
+const TREINNUMMER = {icm:4011, virm:9471, sng:2308, e320:4019};
+function zetTreinType(type){
+  if (trein.type === type) return;
+  ruimTreinstel(trein); while (cabine.groep.children.length) cabine.groep.remove(cabine.groep.children[0]);
+  trein = maakTreinstel(type, TREINNUMMER[type], true);
+  maakCabine(trein.delen[0].auto, trein.delen[0].zKop);
+  cabine.groep.position.set(0, CAB[type].y - CAB.icm.y, CAB[type].z - CAB.icm.z);
+  camKlaar = false;
+}
 const BEELDEN = ['cabine','volg','kop','zij'], BEELDNAAM = {cabine:'Cabine', volg:'Achter', kop:'Voorkant', zij:'Naast'};
 
 function volgendSein(){ for (const id of seinIdsVan(spel.g)){ const s = id*SIGSP; if (s > spel.s - 30 && seinIs(id) !== 'groen') return {id, s}; } return null; }
@@ -1909,27 +2090,30 @@ function zetTreinOp(g){
   werkStukkenBij(true); werkGebouwenBij();
   plaatsEenheid(trein, spel.s, 1, 0);
   const t = trein.info.bestemming, c = t.userData.canvas.getContext('2d');
-  c.fillStyle='#0b0b0b'; c.fillRect(0,0,256,40); c.fillStyle='#ffb21a'; c.font='700 24px Atkinson Hyperlegible, monospace'; c.textAlign='center'; c.textBaseline='middle'; c.fillText((REIS.ic ? 'IC ' : 'SPR ') + eindNaam(), 128, 21); t.needsUpdate = true;
+  c.fillStyle='#0b0b0b'; c.fillRect(0,0,256,40); c.fillStyle='#ffb21a'; c.font='700 24px Atkinson Hyperlegible, monospace'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(soortKort() + ' ' + eindNaam(), 128, 21); t.needsUpdate = true;
 }
 // Nieuwe reis: route berekenen, het spoor opnieuw neerleggen en de trein in het vertrekstation zetten.
-function kiesReis(van, naar, ic, g = 0){
+function kiesReis(van, naar, soort, g = 0, voorkeur){
   if (!van || !naar || van === naar) return false;
-  const nieuw = maakReis(van, naar, ic);
-  if (!nieuw){ melding(`Geen route gevonden van ${van.naam} naar ${naar.naam}`); return false; }
+  if (typeof soort === 'boolean') soort = soort ? 'ic' : 'spr';
+  if (soort === 'es' && !(ES_STATIONS.has(van.code) && ES_STATIONS.has(naar.code))){ melding('De Eurostar stopt in Nederland alleen in Amsterdam C., Schiphol en Rotterdam C.'); return false; }
+  const sigOud = SIGSP, nieuw = maakReis(van, naar, soort, treinVoorSoort(soort, voorkeur || (prog.reis && prog.reis.trein)));
+  if (!nieuw){ SIGSP = sigOud; melding(`Geen route gevonden van ${van.naam} naar ${naar.naam}`); return false; }
   for (const k of [...GEBOUWEN.keys()]) ruimGebouwen(k);
-  REIS = nieuw; nieuwPad(); seinStaat.clear();
-  prog.reis = {van:van.code, naar:naar.code, ic, g:clamp(g, 0, nStops() - 1)}; bewaar();
+  REIS = nieuw; nieuwPad(); seinStaat.clear(); zetTreinType(nieuw.trein);
+  prog.reis = {van:van.code, naar:naar.code, soort, trein:nieuw.trein, g:clamp(g, 0, nStops() - 1)}; bewaar();
   zetTreinOp(prog.reis.g);
   return true;
 }
 // Topsnelheid: 100 km/u, met een reeks goede antwoorden tot 140 km/u (dienstsnelheid Koploper)
-const maxKmu = () => 100 + 10*Math.min(spel.reeks, 4);
+const TT = () => TREINEN[trein.type];
+const maxKmu = () => Math.round(TT().vmax*(0.72 + 0.07*Math.min(spel.reeks, 4))/5)*5;
 function zetHendel(kmu){ spel.hendel = clamp(Math.round(kmu/5)*5, 0, maxKmu()); }
 function vertrek(){
   spel.hendel = 0; setTimeout(() => { if (spel.modus === 'rijden' && spel.hendel === 0) melding('Geef gas: druk op Harder ▲'); }, 2500);
   spel.modus = 'rijden'; spel.deurDoel = 0; spel.ritSein = R(2, Math.max(2, nSein(spel.g))); spel.ritWissel = 0;
   $('start').hidden = true; $('aankomst').hidden = true; $('balk').hidden = false; $('bedien').hidden = false; $('reeks').hidden = false; $('reizigers').hidden = false;
-  $('bRichting').textContent = `${treinSoort()} naar ${eindNaam()}`; $('bVan').textContent = stopNaam(spel.g); $('bNaar').textContent = stopNaam(spel.g+1);
+  $('bSoort').textContent = soortKort(); $('bRichting').textContent = `${treinSoort()} naar ${eindNaam()}`; $('bVan').textContent = stopNaam(spel.g); $('bNaar').textContent = stopNaam(spel.g+1);
   const sp = $('bSpoor'), G = REIS.S[spel.g+1] - REIS.S[spel.g]; sp.querySelectorAll('.b-sein').forEach(e => e.remove());
   seinIdsVan(spel.g).forEach((id,i) => { const e = document.createElement('i'); e.className = 'b-sein'; e.dataset.id = id; e.style.left = ((i+1)*SIGSP/G*100)+'%'; sp.appendChild(e); });
   bezoek(REIS.stops[spel.g].code);
@@ -1994,10 +2178,10 @@ function stationBijKlik(e){
 }
 function zoekStation(tekst){ const t = String(tekst || '').trim().toLowerCase(); if (!t) return null;
   return NET.opNaam.get(t) || NET.ST.find(s => s.naam.toLowerCase().startsWith(t)) || NET.ST.find(s => s.naam.toLowerCase().includes(t)) || null; }
-function wijzigReis(van, naar, ic){ if (kiesReis(van || REIS.van, naar || REIS.naar, ic === undefined ? REIS.ic : ic)) vulStart(); else vulStart(); }
+function wijzigReis(van, naar, soort, voorkeur){ kiesReis(van || REIS.van, naar || REIS.naar, soort === undefined ? REIS.soort : soort, 0, voorkeur); vulStart(); }
 // Dienstregeling voor in de planner: vertrek over een paar minuten, rijtijd uit de echte afstand.
 function reisTijden(){
-  const nu = new Date(), m0 = Math.ceil((nu.getHours()*60 + nu.getMinutes() + 3)/5)*5, v = REIS.ic ? 105 : 72;
+  const nu = new Date(), m0 = Math.ceil((nu.getHours()*60 + nu.getMinutes() + 3)/5)*5, v = REIS.soort === 'es' ? 190 : REIS.ic ? 105 : 72;
   const T = [m0]; for (let k = 1; k < REIS.stops.length; k++){ const D = (REIS.stops[k].r - REIS.stops[k-1].r)/1000;
     T.push(T[k-1] + Math.max(2, Math.round(D/v*60)) + (k > 1 ? 1 : 0) + (REIS.stops[k-1].kop ? 4 : 0)); }
   return T;
@@ -2015,11 +2199,12 @@ function vulStart(){
   $('lesTekst').textContent = L < RITTEN.length ? `De Wereld in Getallen, blok 1, ${RITTEN[L].les} · ${Math.min(lesStap(L), 10)} van de 10 stappen gedaan` : 'Alles van blok 1 door elkaar';
   if (document.activeElement !== $('iVan')) $('iVan').value = REIS.van.naam;
   if (document.activeElement !== $('iNaar')) $('iNaar').value = REIS.naar.naam;
-  $('kIC').setAttribute('aria-pressed', REIS.ic); $('kSpr').setAttribute('aria-pressed', !REIS.ic);
+  $('kIC').setAttribute('aria-pressed', REIS.soort === 'ic'); $('kSpr').setAttribute('aria-pressed', REIS.soort === 'spr'); $('kES').setAttribute('aria-pressed', REIS.soort === 'es');
+  $('materieel').hidden = REIS.soort !== 'ic'; $('kICM').setAttribute('aria-pressed', REIS.trein === 'icm'); $('kVIRM').setAttribute('aria-pressed', REIS.trein === 'virm');
   const T = reisTijden(), hm = m => `${String(Math.floor(m/60)%24).padStart(2,'0')}:${String(Math.round(m)%60).padStart(2,'0')}`, duur = T[T.length-1] - T[0];
   $('pVertrek').textContent = `Vertrek vandaag om ${hm(T[0])}`;
   $('rTijden').textContent = `${hm(T[0])} → ${hm(T[T.length-1])}`; $('rDuur').textContent = `${Math.floor(duur/60)}:${String(duur%60).padStart(2,'0')}`;
-  $('rSoort').textContent = REIS.ic ? 'IC' : 'SPR'; $('rRichting').textContent = `${treinSoort()} naar ${eindNaam()}`; $('rSpoor').textContent = `spoor ${spoorVan(REIS.van.code)}`;
+  $('rSoort').textContent = soortKort(); $('rRichting').textContent = `${treinSoort()} naar ${eindNaam()} · ${TREINEN[REIS.trein].naam}, max. ${TREINEN[REIS.trein].vmax} km/u`; $('rSpoor').textContent = `spoor ${spoorVan(REIS.van.code)}`;
   const kops = REIS.stops.filter(s => s.kop).map(s => s.naam);
   $('reisTekst').textContent = `${Math.round(REIS.km)} km · ${nStops()} ${nStops() === 1 ? 'rit' : 'ritten'} met sommen` + (kops.length ? ` · kopmaken in ${kops.join(' en ')}` : '');
   $('sHaltes').textContent = `${REIS.stops.length - 2 > 0 ? REIS.stops.length - 2 + ' tussenstations' : 'Rechtstreeks'} en sommen`;
@@ -2047,7 +2232,10 @@ function zetStartKnoppen(){
     const s = zoekStation($(id).value); if (!s){ melding('Dat station ken ik niet'); vulStart(); return; }
     wijzigReis(kant === 'van' ? s : REIS.van, kant === 'naar' ? s : REIS.naar); });
   $('kWissel').onclick = () => wijzigReis(REIS.naar, REIS.van);
-  $('kIC').onclick = () => wijzigReis(REIS.van, REIS.naar, true); $('kSpr').onclick = () => wijzigReis(REIS.van, REIS.naar, false);
+  $('kIC').onclick = () => wijzigReis(REIS.van, REIS.naar, 'ic'); $('kSpr').onclick = () => wijzigReis(REIS.van, REIS.naar, 'spr');
+  $('kES').onclick = () => { const amsterdam = NET.opCode.get('ASD'), rotterdam = NET.opCode.get('RTD');
+    if (ES_STATIONS.has(REIS.van.code) && ES_STATIONS.has(REIS.naar.code)) wijzigReis(REIS.van, REIS.naar, 'es'); else wijzigReis(amsterdam, rotterdam, 'es'); };
+  $('kICM').onclick = () => wijzigReis(REIS.van, REIS.naar, 'ic', 'icm'); $('kVIRM').onclick = () => wijzigReis(REIS.van, REIS.naar, 'ic', 'virm');
 }
 
 /* ---------- camera ---------- */
@@ -2064,8 +2252,9 @@ function camUpdate(dt){
     const a = spel.t*0.08; camDoel.copy(voor.localToWorld(tmp.set(Math.sin(a)*16 - 4, 4.5 + Math.sin(a*0.7), zk + 8 + Math.cos(a)*14)));
     kijkDoel.copy(voor.localToWorld(tmp.set(0, 2.4, zk - 4)));
   } else if (binnen){
-    camera.position.copy(voor.localToWorld(tmp.set(0, 4.08, zk + 1.0)));
-    kijkDoel.copy(voor.localToWorld(tmp.set(0, 2.2, zk + 60))); kijkNu.copy(kijkDoel); camera.lookAt(kijkNu); camera.fov = 68; camera.updateProjectionMatrix(); camKlaar = true; return;
+    const cp = CAB[trein.type];
+    camera.position.copy(voor.localToWorld(tmp.set(0, cp.y, zk + cp.z)));
+    kijkDoel.copy(voor.localToWorld(tmp.set(0, cp.y - 1.9, zk + 60))); kijkNu.copy(kijkDoel); camera.lookAt(kijkNu); camera.fov = 68; camera.updateProjectionMatrix(); camKlaar = true; return;
   } else if (spel.beeld === 'volg'){
     camDoel.copy(voor.localToWorld(tmp.set(0, 9, -42))); kijkDoel.copy(voor.localToWorld(tmp.set(0, 3, 40)));
   } else if (spel.beeld === 'kop'){
@@ -2086,9 +2275,9 @@ function update(dt){
   if (spel.modus === 'rijden'){
     const vmax = Math.min(maxKmu(), spel.hendel)/3.6;   // de speler bepaalt de snelheid met de hendel; de ATB remt voor seinen en stations
     let vMag = vmax; const ns = volgendSein();
-    if (ns){ const d = ns.s - 16 - spel.s; vMag = Math.min(vMag, Math.sqrt(Math.max(0, 2*1.1*d))); if (!spel.q && spel.s > ns.s - 520 && seinIs(ns.id) !== 'vraag') stelVraag(ns.id); }
-    const dS = REIS.S[spel.g+1] - spel.s; vMag = Math.min(vMag, Math.sqrt(Math.max(0, 2*0.85*dS)));
-    if (spel.v < vMag) spel.v = Math.min(vMag, spel.v + 0.9*dt); else spel.v = Math.max(vMag, spel.v - (vMag < spel.hendel/3.6 ? 2.4 : 1.4)*dt);
+    if (ns){ const d = ns.s - 16 - spel.s; vMag = Math.min(vMag, Math.sqrt(Math.max(0, 2*TT().rem*d))); if (!spel.q && spel.s > ns.s - Math.min(SIGSP - 60, Math.max(520, spel.v*spel.v/(2*TT().rem) + 260)) && seinIs(ns.id) !== 'vraag') stelVraag(ns.id); }
+    const dS = REIS.S[spel.g+1] - spel.s; vMag = Math.min(vMag, Math.sqrt(Math.max(0, 2*0.8*TT().rem*dS)));
+    if (spel.v < vMag) spel.v = Math.min(vMag, spel.v + TT().acc*clamp(1.4 - spel.v/90, 0.35, 1)*dt); else spel.v = Math.max(vMag, spel.v - (vMag < spel.hendel/3.6 ? 2.4 : 1.4)*dt);
     if (spel.hendel === 0 && spel.v < 0.1 && !spel.q){ spel.stilT = (spel.stilT || 0) + dt; if (spel.stilT > 3){ spel.stilT = -6; melding('Geef gas: druk op Harder ▲'); } } else spel.stilT = 0;
     spel.s += spel.v*dt;
     if (ns && spel.s > ns.s - 16) { spel.s = ns.s - 16; spel.v = 0; }
@@ -2106,7 +2295,7 @@ function update(dt){
   // tegenligger op het andere spoor
   if (spel.modus === 'rijden'){
     spel.tegenTijd -= dt;
-    if (!spel.tegenTrein && spel.tegenTijd < 0 && nabijStation(spel.s + 900) > 400){ spel.tegenTrein = {e: maakEenheid(4200 + R(10,99), false), s: spel.s + 1300, gezien:false}; }
+    if (!spel.tegenTrein && spel.tegenTijd < 0 && nabijStation(spel.s + 900) > 400){ spel.tegenTrein = {e: maakTreinstel(kies(['icm','virm','sng']), 4200 + R(10,99), false), s: spel.s + 1300, gezien:false}; }
   }
   if (spel.tegenTrein){ const t = spel.tegenTrein; t.s -= 34*dt; plaatsEenheid(t.e, t.s, -1, SPOOR2); for (const w of t.e.wielen) w.rotation.x += 34*dt/0.46;
     if (!t.gezien && t.s - spel.s < 260){ t.gezien = true; toeter(0.12); }
@@ -2197,7 +2386,7 @@ $('kGeluid').setAttribute('aria-pressed', prog.geluid); $('kVoorlees').setAttrib
 $('laden').textContent = 'De kaart van Nederland wordt klaargelegd…';
 await testBag();
 { const r = prog.reis || {}; const van = NET.opCode.get(r.van) || NET.opNaam.get('den haag centraal'), naar = NET.opCode.get(r.naar) || NET.opNaam.get('amersfoort centraal');
-  if (!kiesReis(van, naar, r.ic !== false, r.g || 0)) kiesReis(NET.opNaam.get('den haag centraal'), NET.opNaam.get('amersfoort centraal'), true); }
+  if (!kiesReis(van, naar, r.soort || (r.ic === false ? 'spr' : 'ic'), r.g || 0, r.trein)) kiesReis(NET.opNaam.get('den haag centraal'), NET.opNaam.get('amersfoort centraal'), 'ic'); }
 zetStartKnoppen(); spel.modus = 'titel'; $('laden').hidden = true; vulStart(); $('start').hidden = false;
 requestAnimationFrame(lus);
 window.__rt = { spel, prog, GEN, renderer, THREE, M, camera, scene, NET, GEBOUWEN, reis:() => REIS, bag:() => BAG_WERKT, kiesReis, padOp, vraag(skill){ spel.testSkill = skill; spel.q = null; $('vraag').hidden = true; spel.ritSein = 99; stelVraag(volgendSein().id); return spel.q; }, hulp(){ spel.hulpVanaf = 0; zetHulpKnop(); toonHulp(); }, stap(sec = 1, fps = 30){ for (let i=0;i<sec*fps;i++) update(1/fps); render(); return {modus:spel.modus, s:Math.round(spel.s), kmu:Math.round(spel.v*3.6), q:spel.q && spel.q.tokens}; },
