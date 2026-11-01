@@ -4,13 +4,14 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=Hind:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: volledig 3D-beeld; bediening als NS-reisinformatie (blauwe panelen, geel accent), één kaart onderin voor de som */
 :root{
   --geel:#FFC917; --geel-d:#e5ad00; --blauw:#003082; --blauw-2:#0b4aa8; --nacht:#0a1b3f;
   --wit:#ffffff; --papier:#f4f7fc; --lijn:#c9d5ea; --inkt:#0a1b3f; --zacht:#5a6a8a;
   --f-disp:'Fredoka','Trebuchet MS',system-ui,sans-serif;
+  --f-ns:'Hind','Frutiger','Segoe UI',system-ui,sans-serif;   /* lijkt op NS Sans (die is niet vrij te gebruiken) */
   --f-body:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;
   color-scheme: light;
 }
@@ -109,18 +110,18 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 .les{margin:-4px 0 0;font-size:13px;opacity:.75}
 .kop2{margin:4px 0 -6px;font-family:var(--f-disp);font-weight:600;font-size:17px;color:var(--geel)}
 .ritten button:disabled{opacity:.35}
-.planner,.advies{background:var(--wit);color:var(--inkt);border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.planner h2{margin:0 0 8px;font:700 20px var(--f-disp);color:var(--blauw)}
+.planner,.advies{font-family:var(--f-ns);background:var(--wit);color:var(--inkt);border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.planner h2{margin:0 0 8px;font:700 22px var(--f-ns);color:var(--blauw)}
 .velden{position:relative;display:flex;flex-direction:column;border:1px solid var(--lijn);border-radius:8px}
 .veld{display:flex;align-items:center;gap:10px;padding:4px 52px 4px 12px;min-width:0}
 .veld + .veld{border-top:1px solid var(--lijn)}
 .veld span{width:40px;flex:none;font-size:14px;color:var(--zacht)}
-.veld input{flex:1;min-width:0;border:0;padding:9px 0;font:600 17px system-ui,sans-serif;color:var(--blauw);background:none;outline:none}
+.veld input{flex:1;min-width:0;border:0;padding:9px 0;font:600 18px var(--f-ns);color:var(--blauw);background:none;outline:none}
 .veld input:focus{box-shadow:inset 0 -2px 0 var(--blauw-2)}
 .wissel{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:1px solid var(--lijn);background:var(--wit);color:var(--blauw);border-radius:50%;width:38px;height:38px;font-size:19px}
 .vertrek{margin:10px 0 0;font-size:14px;color:var(--zacht)}
 .advies-kop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.tijden{font:700 24px var(--f-disp);color:var(--blauw)}
+.tijden{font:700 26px var(--f-ns);color:var(--blauw)}
 .duur{font-size:15px;color:var(--zacht);white-space:nowrap}
 .advies-sub{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;font-size:15px}
 .advies-sub .ic{background:var(--blauw);color:var(--wit)}
@@ -134,13 +135,14 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 .advies .stip::before{background:var(--lijn)}
 .advies .stip i{background:var(--wit);border-color:var(--blauw)}
 .advies .haltes li.bereikt .stip i{background:var(--geel);border-color:var(--blauw)}
+.advies .h-naam{font-family:var(--f-ns);font-weight:600}
 .advies .h-vaardig{color:var(--zacht);opacity:1}
-.h-tijd{display:inline-block;width:46px;font:700 15px system-ui,sans-serif;color:var(--blauw)}
+.h-tijd{display:inline-block;width:46px;font:700 15px var(--f-ns);color:var(--blauw)}
 .soort{display:flex;gap:6px}
 .soort{margin-top:10px}
 .soort.materieel button{font-size:13px;padding:5px 10px}
 .soort[hidden]{display:none}
-.soort button{flex:1;border:1px solid var(--lijn);background:var(--wit);color:var(--blauw);border-radius:999px;padding:7px 12px;font-size:15px;font-weight:700}
+.soort button{flex:1;font-family:var(--f-ns);border:1px solid var(--lijn);background:var(--wit);color:var(--blauw);border-radius:999px;padding:7px 12px;font-size:15px;font-weight:700}
 .soort button[aria-pressed="true"]{background:var(--blauw);color:var(--wit);border-color:var(--blauw)}
 .kaartvak{background:rgba(255,255,255,.06);border-radius:14px;padding:6px}
 #kaart{display:block;width:100%;height:auto;max-height:48vh;cursor:pointer;touch-action:manipulation}
@@ -450,7 +452,19 @@ const NET = (() => {
     }
     return null;
   }
-  return {K, L, ST, opNaam, opCode, opKnoop, route, kop, hoekVerschil};
+  // doodlopend spoor? vanaf knoop kn in richting h verder rijden tot het spoor ophoudt (kopstation) of 700 m doorloopt
+  function totStootblok(kn, h, negeer){
+    let d = 0;
+    for (let stap = 0; stap < 40; stap++){
+      let best = null, bh = 0.7;
+      for (const [j, r2] of uit.get(kn) || []){ if (j === negeer) continue; const h2 = kop(j, r2, false); if (h2 === null) continue; const dh = hoekVerschil(h, h2); if (dh < bh){ bh = dh; best = [j, r2]; } }
+      if (!best) return stap === 0 && (uit.get(kn) || []).length <= 1 ? 0 : d;
+      const [j, r2] = best; d += L[j].len; if (d > 700) return null;
+      kn = r2 > 0 ? L[j].b : L[j].a; const he = kop(j, r2, true); if (he !== null) h = he; negeer = j;
+    }
+    return null;
+  }
+  return {K, L, ST, opNaam, opCode, opKnoop, route, kop, hoekVerschil, totStootblok};
 })();
 
 /* ---------- een reis: echte route, stops en de afbeelding op de spelbaan ----------
@@ -515,7 +529,15 @@ function maakReis(van, naar, soort, treinType){
   const glad = (src, w) => { const out = new Float64Array(src.length), c = new Float64Array(src.length + 1); for (let i = 0; i < src.length; i++) c[i+1] = c[i] + src[i];
     for (let i = 0; i < src.length; i++){ const a = Math.max(0, i - w), b = Math.min(src.length, i + w + 1); out[i] = (c[b] - c[a])/(b - a); } return out; };
   const koersR = glad(glad(hk, 6), 6);
+  // kopstations: achter het vertrek of voorbij de bestemming houdt het spoor op
+  const [i0, r0] = pad[0], [iE, rE] = pad[pad.length-1];
+  const hBegin = NET.kop(i0, r0, false), hEind = NET.kop(iE, rE, true);
+  // een kopstation is het pas als geen enkel spoor van het station in die richting doorloopt
+  const kopstation = (st, h) => st.ks.every(k => NET.totStootblok(k, h, -1) !== null);
+  const terugBegin = hBegin === null || !kopstation(van, hBegin + Math.PI) ? null : NET.totStootblok(r0 > 0 ? L[i0].a : L[i0].b, hBegin + Math.PI, i0);
+  const verderEind = hEind === null || !kopstation(naar, hEind) ? null : NET.totStootblok(rE > 0 ? L[iE].b : L[iE].a, hEind, iE);
   const reis = {van, naar, ic, soort, trein:treinType, stops, S, pts, Rtot, koersR, keer:keerR,
+    stootBegin: terugBegin === null ? null : -Math.max(35, terugBegin), stootEind: verderEind === null ? null : S[S.length-1] + Math.max(35, verderEind),
     lengte: S[S.length-1], km: Rtot/1000};
   reis.rVan = s => {
     if (s <= 0) return 0; if (s >= reis.lengte) return Rtot;
@@ -1479,8 +1501,9 @@ async function bagCityjson(x0, y0, x1, y1){
   return {meta, features:uit};
 }
 async function testBag(){
-  try { await Promise.race([bagWfs(81500, 455000, 81510, 455010), new Promise((_, nok) => setTimeout(() => nok(new Error('traag')), 6000))]); BAG_WERKT = true; }
-  catch (e) { BAG_WERKT = false; }
+  for (let poging = 0; poging < 2 && !BAG_WERKT; poging++){
+    try { await Promise.race([bagWfs(81500, 455000, 81510, 455010), new Promise((_, nok) => setTimeout(() => nok(new Error('traag')), 9000))]); BAG_WERKT = true; }
+    catch (e) { BAG_WERKT = false; } }
 }
 T.kantoor = tex(128,128,(c,w,h)=>{ c.fillStyle='#d9d6cf'; c.fillRect(0,0,w,h); c.fillStyle='#3d4a57';
   for (let y=10;y<h;y+=32) for (let x=6;x<w;x+=32) c.fillRect(x,y,22,18); c.fillStyle='rgba(255,255,255,.18)'; for (let y=10;y<h;y+=32) c.fillRect(0,y,w,3); });
@@ -1544,7 +1567,8 @@ function bouwGebouwen(k, wfs, lod22){
     for (const ft of lod22.features){
       const tf = ft._tf || lod22.meta.transform, sc = tf.scale, tr = tf.translate;
       const V = ft.vertices.map(v => [v[0]*sc[0] + tr[0], v[1]*sc[1] + tr[1], v[2]*sc[2] + tr[2]]);
-      let mv = 0; for (const [id, o] of Object.entries(ft.CityObjects)){ if (o.type === 'Building'){ mv = (o.attributes && o.attributes.b3_h_maaiveld) || 0; lod22ids.add(id); } }
+      let mv = 0, jaar = 0; for (const [id, o] of Object.entries(ft.CityObjects)){ if (o.type === 'Building'){ mv = (o.attributes && o.attributes.b3_h_maaiveld) || 0; jaar = (o.attributes && o.attributes.oorspronkelijkbouwjaar) || 0; lod22ids.add(id); } }
+      const eigenStijl = stijl.tex !== 'gevel' || (jaar && jaar < 1930);   // baksteen alleen voor de oude stationsgebouwen
       if (f.kop && V.length && toets(V[0][0], V[0][1]).langs > 30) continue;   // kopmaken: alleen de aankomstkant, gespiegeld naar voren
       for (const o of Object.values(ft.CityObjects)){
         const g = (o.geometry || []).find(x => x.lod === '2.2'); if (!g) continue;
@@ -1569,9 +1593,10 @@ function bouwGebouwen(k, wfs, lod22){
             if (boven && Math.min(pp[0][2], pp[1][2], pp[2][2]) - mv < 7.5) continue;
             const spel3 = pp.map(p => { const [x, z] = naarSpel(f, p[0], p[1], th); return [x, Math.max(0, p[2] - mv), z]; });
             if (dak && (boven || opSpoor((pp[0][0] + pp[1][0] + pp[2][0])/3, (pp[0][1] + pp[1][1] + pp[2][1])/3))){ tri('kap', spel3); tri('onder', spel3); }   // kap boven het spoor: van boven glas en staal, van onder donker
-            else if (dak) tri('stDak', spel3, wit);
-            else { const sU = stijl.tex === 'gevel' ? 6 : 4, sV = stijl.tex === 'gevel' ? 6 : 3.5;
+            else if (dak) tri(eigenStijl ? 'stDak' : 'plat', spel3, eigenStijl ? wit : [0.42, 0.44, 0.47]);
+            else if (eigenStijl){ const sU = stijl.tex === 'gevel' ? 6 : 4, sV = stijl.tex === 'gevel' ? 6 : 3.5;
               tri('stMuur', spel3, wit, pp.flatMap(p => [(p[0]*hx + p[1]*hy)/hl/sU, (p[2] - mv)/sV])); }
+            else tri('kantoor', spel3, [0.9, 0.9, 0.92], pp.flatMap(p => [(p[0]*hx + p[1]*hy)/hl/4, (p[2] - mv)/3.5]));
           }
         }));
       }
@@ -1676,15 +1701,19 @@ function kleurSein(id){ const sm = seinMeshes.get(id); if (!sm) return; const st
 function bouwStuk(ci){
   const s0 = ci*CH, s1 = s0 + CH, g = new THREE.Group(), r = rng(ci*7919 + 13), anim = [], seinen = [], ow = [];
   const sMid = s0 + CH/2, stationDicht = nabijStation(sMid) < 700;
-  // ballast, bielzen, rails (dubbelspoor)
-  const ballast = eigenMesh(lint(s0, s1, [[-7.8,0],[-6.3,0.55],[1.8,0.55],[3.3,0]], 4, 0.3, 0.3), M.grind); ballast.receiveShadow = true; g.add(ballast);
+  // ballast, bielzen, rails (dubbelspoor); bij een kopstation houdt het spoor op bij een stootblok
+  const sa = Math.max(s0, REIS && REIS.stootBegin !== null ? REIS.stootBegin - 4 : -1e9), sb = Math.min(s1, REIS && REIS.stootEind !== null ? REIS.stootEind + 4 : 1e9), spoor = sb > sa + 1;
+  if (spoor){
+  const ballast = eigenMesh(lint(sa, sb, [[-7.8,0],[-6.3,0.55],[1.8,0.55],[3.3,0]], 4, 0.3, 0.3), M.grind); ballast.receiveShadow = true; g.add(ballast);
   for (const t of [0, SPOOR2]) for (const k of [-0.7175, 0.7175]){
-    g.add(eigenMesh(lint(s0, s1, [[t+k-0.045,0.72],[t+k-0.035,0.9],[t+k+0.035,0.9],[t+k+0.045,0.72]], 4), M.rail));
+    g.add(eigenMesh(lint(sa, sb, [[t+k-0.045,0.72],[t+k-0.035,0.9],[t+k+0.035,0.9],[t+k+0.045,0.72]], 4), M.rail));
   }
-  { const n = Math.floor(CH/0.6), im = new THREE.InstancedMesh(G.biels, M.biels, n*2), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), e = new THREE.Vector3(1,1,1);
-    let k = 0; for (let i=0;i<n;i++){ const s = s0 + i*0.6 + 0.3, p = padOp(s); q.setFromAxisAngle(new THREE.Vector3(0,1,0), p.h);
+  { const n = Math.floor((sb - sa)/0.6), im = new THREE.InstancedMesh(G.biels, M.biels, Math.max(1, n*2)), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), e = new THREE.Vector3(1,1,1);
+    let k = 0; for (let i=0;i<n;i++){ const s = sa + i*0.6 + 0.3, p = padOp(s); q.setFromAxisAngle(new THREE.Vector3(0,1,0), p.h);
       for (const t of [0, SPOOR2]){ v.set(p.x - Math.cos(p.h)*t, 0.635, p.z + Math.sin(p.h)*t); m4.compose(v,q,e); im.setMatrixAt(k++, m4); } }
-    im.receiveShadow = true; g.add(im); }
+    im.count = k; im.receiveShadow = true; g.add(im); }
+  for (const [S, kant] of [[REIS && REIS.stootBegin, 1], [REIS && REIS.stootEind, -1]]) if (S !== null && S !== undefined && S >= s0 && S < s1) for (const t of [0, SPOOR2]) bouwStootblok(g, S, t, kant);
+  }
   // sloten langs het spoor
   if (!stationDicht){ g.add(eigenMesh(lint(s0, s1, [[10,0.03],[12.4,0.03]], 8), M.water)); }
   g.add(eigenMesh(lint(s0, s1, [[-12.6,0.03],[-10.2,0.03]], 8), M.water));
@@ -1702,14 +1731,14 @@ function bouwStuk(ci){
       s = e; }
   }
   // bovenleiding: portalen elke 60 m
-  for (let s = Math.ceil((s0-30)/60)*60 + 30; s < s1; s += 60){
+  if (spoor) for (let s = Math.ceil((sa-30)/60)*60 + 30; s < sb; s += 60){
     const port = new THREE.Group(); plaats(port, s, 0);
     port.add(doos(0.32,8.4,0.32,M.mast, -3.7,4.2,0), doos(0.32,8.4,0.32,M.mast, 8.3,4.2,0), doos(12.3,0.35,0.3,M.mast, 2.3,8.3,0));
     for (const t of [0, SPOOR2]) port.add(doos(0.05,1.8,0.05,M.mast, -t,7.4,0));
     g.add(port);
   }
-  for (const t of [0, SPOOR2]) for (const y of [RAIL_Y+5.55, RAIL_Y+7.0]){
-    const pts = []; for (let s = s0; s <= s1; s += 10) pts.push(naast(s, t, y));
+  if (spoor) for (const t of [0, SPOOR2]) for (const y of [RAIL_Y+5.55, RAIL_Y+7.0]){
+    const pts = []; for (let s = sa; s <= sb; s += 10) pts.push(naast(s, t, y));
     const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), M.draad); l.userData.eigen = true; g.add(l);
   }
   // hectometerbordjes
@@ -1844,6 +1873,14 @@ function bouwStation(g, S, k){
     const mat = std(kl[Math.floor(r()*kl.length)]); mat.userData.eigen = true;
     const lijf = cilinder(0.26,1.1,mat,0,0.85,0); lijf.castShadow = true; p.add(lijf, cilinder(0.12,0.5,M.zwartM,0,0.25,0));
     const hoofd = new THREE.Mesh(G.bol, std(0xe0b58e)); hoofd.material.userData.eigen = true; hoofd.scale.setScalar(0.17); hoofd.position.y = 1.6; p.add(hoofd); g.add(p); }
+}
+// stootblok aan het eind van een kopspoor: rood-witte balk op twee poten
+function bouwStootblok(g, S, t, kant){
+  const b = new THREE.Group(); plaats(b, S, t);
+  const balk = new THREE.Mesh(G.doos, new THREE.MeshStandardMaterial({map:T.slagboom})); balk.material.userData.eigen = true; balk.scale.set(2.2, 0.35, 0.3); balk.position.set(0, 1.35, 0); b.add(balk);
+  for (const x of [-0.72, 0.72]){ b.add(doos(0.22, 1.2, 0.22, M.zwartM, x, 0.75, 0)); const poot = doos(0.18, 0.18, 1.6, M.zwartM, x, 0.85, -kant*0.7); poot.rotation.x = kant*0.5; b.add(poot); }
+  const lamp = new THREE.Mesh(G.bol, M.lampR); lamp.scale.setScalar(0.12); lamp.position.set(0, 1.75, 0); b.add(lamp);
+  g.add(b);
 }
 function bouwOverweg(g, s){
   const o = new THREE.Group(); plaats(o, s, 0); const rij = new THREE.Group();
