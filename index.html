@@ -1369,9 +1369,10 @@ function maakModernRijtuig(type, soort, nummer, achterkant, info){
       for (let i = 0; i <= 14; i++){ const t = i/14, u = t*6.8;
         S.push({u:zKop + u, b:b*(1 - 0.62*Math.pow(t, 2.2)), yo:yo + 0.12*t, yb:yb - 2.6*Math.pow(t, 1.6) - 0.05*t, rb:0.6 - 0.25*t, ro:0.22 + 0.15*t}); }
       const neus = loft(S, (x, y, z) => { const u = z - zKop, top = yb - 2.6*Math.pow(u/6.8, 1.6);
-        if (u > 2.6 && u < 4.9 && y > top - 0.55 && Math.abs(x) < 0.9) return rgb(0x0f141b);   // voorruit
-        if (u > 5.6) return rgb(0x8f98a5);                                                         // grijze punt
-        if (u > 1.4 && y > 1.25) return rgb(0xFFC200);                                              // geel rond de ruit
+        const ruitOnder = top - 0.55;
+        if (u > 2.6 && u < 4.9 && y > ruitOnder && Math.abs(x) < 0.9) return rgb(0x0f141b);   // voorruit
+        if (u > 5.6) return rgb(0x8f98a5);                                                      // grijze punt
+        if (u > 2.0 && ((y > ruitOnder - 0.5 && y <= ruitOnder + 0.02) || (Math.abs(x) >= 0.9 && y > ruitOnder - 0.5 && u > 2.4))) return rgb(0xFFC200);   // gele lijst en kin rond de ruit
         if (y < 1.66) return rgb(0x8f98a5); return rgb(0x2a3b5c); }, 72);
       model.add(neus); cabDelen.push(neus);
       const bord = bestemmingBord(model, info, 2.3, zKop + 5.2, 0.8); if (bord){ bord.rotation.x = -1.15; cabDelen.push(bord); }
@@ -1471,9 +1472,10 @@ async function bagJson(url, ms = 25000){
   try { const r = await fetch(url, {signal:ctl.signal}); if (!r.ok) throw new Error('3D BAG ' + r.status); return await r.json(); } finally { clearTimeout(t); }
 }
 const bagWfs = (x0, y0, x1, y1) => bagJson(`${BAG_WFS}&typeNames=BAG3D:lod13&bbox=${x0},${y0},${x1},${y1},EPSG:28992&count=12000&propertyName=${BAG_VELDEN}`);
+// elke pagina van de CityJSON-API heeft een eigen transformatie; die gaat per gebouw mee
 async function bagCityjson(x0, y0, x1, y1){
   let url = `https://api.3dbag.nl/collections/pand/items?bbox=${x0},${y0},${x1},${y1}&limit=100`, uit = [], meta = null;
-  for (let pagina = 0; url && pagina < 4; pagina++){ const d = await bagJson(url, 20000); meta = meta || d.metadata; uit = uit.concat(d.features || []); url = (d.links || []).find(l => l.rel === 'next')?.href; }
+  for (let pagina = 0; url && pagina < 4; pagina++){ const d = await bagJson(url, 20000); meta = meta || d.metadata; for (const ft of d.features || []) ft._tf = d.metadata && d.metadata.transform; uit = uit.concat(d.features || []); url = (d.links || []).find(l => l.rel === 'next')?.href; }
   return {meta, features:uit};
 }
 async function testBag(){
@@ -1488,12 +1490,22 @@ Object.assign(M, {
   bagStation: std(0xd8dce1,{metalness:.25, roughness:.45, side:DS2}), bagOnder: std(0x34383e,{roughness:.9, side:DS2}), bagGlas: std(0xa9c1d1,{metalness:.4, roughness:.15, transparent:true, opacity:.72, side:DS2}),
 });
 const GEBOUWEN = new Map();   // stopnummer -> {groep, klaar}
+// Kleuren van de grote stations (naar foto's): muur met ramen, dak, en de kap boven het spoor (glas en staal)
+const STATIONSSTIJL = {
+  ASD: {muur:0xf2ddd2, tex:'gevel', dak:0x50565e, kap:0xbfcad3},   // Amsterdam C.: rode baksteen, leien dak, gebogen glazen kappen
+  RTD: {muur:0xb9c3cc, tex:'kantoor', dak:0x3c4149, kap:0xc9d3db},  // Rotterdam C.: donkere stalen punt boven glas
+  UT:  {muur:0xdfe3e7, tex:'kantoor', dak:0xf3f4f5, kap:0xeceff2},  // Utrecht C.: witte golvende kap
+  GVC: {muur:0xd3d9de, tex:'kantoor', dak:0xe2e7eb, kap:0xbfd2df},  // Den Haag C.: lichte glazen overkapping
+  AH:  {muur:0xd4d8dc, tex:'kantoor', dak:0xeef0f1, kap:0xdfe4e8},  // Arnhem C.: witte gedraaide hal
+  standaard: {muur:0xc9ced4, tex:'kantoor', dak:0x8e959d, kap:0xc6d0d8},
+};
 
 // Stationsframe: echte RD-coördinaten naar spelcoördinaten, zo dat het echte spoor op het spelspoor valt.
 function stationFrame(k){
   const S = REIS.S[k], r = REIS.stops[k].r, aan = k > 0 ? -1 : 1;
-  const hg = padOp(S + aan*40).h, a = REIS.punt(r + aan*60), b = REIS.punt(r + aan*20);
-  const hr = Math.atan2((b[0]-a[0])*aan, -(b[1]-a[1])*aan);
+  // rijrichting vlak bij het station: in het spel (hg) en in het echt (hr), op dezelfde kant van het station gemeten
+  const hg = padOp(S + aan*40).h, a = REIS.punt(clamp(r + aan*20, 0, REIS.Rtot)), b = REIS.punt(clamp(r + aan*60, 0, REIS.Rtot));
+  const vx = (b[0] - a[0])*aan, vy = (b[1] - a[1])*aan, hr = Math.atan2(vx, -vy);
   const P = padOp(S), E = REIS.punt(r);
   return {th:hg - hr, x:P.x, z:P.z, E:E[0], N:E[1], kop:REIS.stops[k].kop, r};
 }
@@ -1511,8 +1523,15 @@ function maakSpoorToets(f){
 
 function bouwGebouwen(k, wfs, lod22){
   const f = stationFrame(k), toets = maakSpoorToets(f);
-  const buf = {muur:[], kantoor:[], plat:[], pannen:[], station:[], glas:[], onder:[]};
-  const uvBuf = {muur:[], kantoor:[]}, kleur = {muur:[], kantoor:[], plat:[], pannen:[]};
+  const buf = {muur:[], kantoor:[], plat:[], pannen:[], station:[], glas:[], onder:[], stMuur:[], stDak:[], kap:[]};
+  const uvBuf = {muur:[], kantoor:[], stMuur:[]}, kleur = {muur:[], kantoor:[], plat:[], pannen:[], stMuur:[], stDak:[]};
+  const stijl = STATIONSSTIJL[REIS.stops[k].code] || STATIONSSTIJL.standaard, wit = [1, 1, 1];
+  // alle echte sporen rond het station (uit het spoornet), om kappen boven het spoor te herkennen
+  const sporen = [];
+  for (const l of NET.L){ const p = l.pts; if (Math.abs(p[0][0] - f.E) > 900 || Math.abs(p[0][1] - f.N) > 900) continue;
+    for (let i = 0; i < p.length - 1; i++) if (Math.abs(p[i][0] - f.E) < 320 && Math.abs(p[i][1] - f.N) < 320) sporen.push(p[i], p[i+1]); }
+  const opSpoor = (E, N) => { for (let i = 0; i < sporen.length; i += 2){ const a = sporen[i], b = sporen[i+1], dx = b[0]-a[0], dy = b[1]-a[1], L2 = dx*dx + dy*dy || 1,
+    t = clamp(((E-a[0])*dx + (N-a[1])*dy)/L2, 0, 1); if (Math.hypot(a[0] + dx*t - E, a[1] + dy*t - N) < 7) return true; } return false; };
   const frames = f.kop ? [f.th, f.th + Math.PI] : [f.th];
   const binnenSpoor = (E, N, y) => { const t = toets(E, N); return t.d < (t.links ? 19 : 11) && y < 7.5; };
   // een muur die ergens door het spoor loopt (ook dwars eroverheen) laten we weg; daken blijven
@@ -1522,8 +1541,8 @@ function bouwGebouwen(k, wfs, lod22){
   const lod22ids = new Set();
   // LoD 2.2 (CityJSON) voor de stationsgebouwen
   if (lod22 && lod22.meta){
-    const sc = lod22.meta.transform.scale, tr = lod22.meta.transform.translate;
     for (const ft of lod22.features){
+      const tf = ft._tf || lod22.meta.transform, sc = tf.scale, tr = tf.translate;
       const V = ft.vertices.map(v => [v[0]*sc[0] + tr[0], v[1]*sc[1] + tr[1], v[2]*sc[2] + tr[2]]);
       let mv = 0; for (const [id, o] of Object.entries(ft.CityObjects)){ if (o.type === 'Building'){ mv = (o.attributes && o.attributes.b3_h_maaiveld) || 0; lod22ids.add(id); } }
       if (f.kop && V.length && toets(V[0][0], V[0][1]).langs > 30) continue;   // kopmaken: alleen de aankomstkant, gespiegeld naar voren
@@ -1539,12 +1558,20 @@ function bouwGebouwen(k, wfs, lod22){
           const proj = p => ax === 0 ? new THREE.Vector2(p[1], p[2]) : ax === 1 ? new THREE.Vector2(p[0], p[2]) : new THREE.Vector2(p[0], p[1]);
           const alle = ringen.flat(); let drie;
           try { drie = THREE.ShapeUtils.triangulateShape(ringen[0].map(proj), ringen.slice(1).map(r => r.map(proj))); } catch (e) { return; }
-          const dak = st === 'RoofSurface';
+          const nl = Math.hypot(...nrm) || 1, dak = st === 'RoofSurface' || nrm[2]/nl > 0.35;
+          const hx = -nrm[1], hy = nrm[0], hl = Math.hypot(hx, hy) || 1;   // horizontale richting langs een muur (voor de ramen)
           for (const th of frames) for (const t3 of drie){
-            const pp = t3.map(i => alle[i]);
+            let pp = t3.map(i => alle[i]);
+            // driehoek naar buiten laten wijzen (zelfde kant als het vlak)
+            const ux = pp[1][0]-pp[0][0], uy = pp[1][1]-pp[0][1], uz = pp[1][2]-pp[0][2], vx = pp[2][0]-pp[0][0], vy = pp[2][1]-pp[0][1], vz = pp[2][2]-pp[0][2];
+            if ((uy*vz - uz*vy)*nrm[0] + (uz*vx - ux*vz)*nrm[1] + (ux*vy - uy*vx)*nrm[2] < 0) pp = [pp[0], pp[2], pp[1]];
             const boven = muurDoorSpoor(pp[0], pp[1]) || muurDoorSpoor(pp[1], pp[2]) || muurDoorSpoor(pp[2], pp[0]);
             if (boven && Math.min(pp[0][2], pp[1][2], pp[2][2]) - mv < 7.5) continue;
-            tri(boven ? 'onder' : dak && glas ? 'glas' : 'station', pp.map(p => { const [x, z] = naarSpel(f, p[0], p[1], th); return [x, Math.max(0, p[2] - mv), z]; }));
+            const spel3 = pp.map(p => { const [x, z] = naarSpel(f, p[0], p[1], th); return [x, Math.max(0, p[2] - mv), z]; });
+            if (dak && (boven || opSpoor((pp[0][0] + pp[1][0] + pp[2][0])/3, (pp[0][1] + pp[1][1] + pp[2][1])/3))){ tri('kap', spel3); tri('onder', spel3); }   // kap boven het spoor: van boven glas en staal, van onder donker
+            else if (dak) tri('stDak', spel3, wit);
+            else { const sU = stijl.tex === 'gevel' ? 6 : 4, sV = stijl.tex === 'gevel' ? 6 : 3.5;
+              tri('stMuur', spel3, wit, pp.flatMap(p => [(p[0]*hx + p[1]*hy)/hl/sU, (p[2] - mv)/sV])); }
           }
         }));
       }
@@ -1606,7 +1633,10 @@ function bouwGebouwen(k, wfs, lod22){
     }
   }
   const groep = new THREE.Group();
-  const matVan = {muur:M.bagMuur, kantoor:M.bagKantoor, plat:M.bagPlat, pannen:M.bagPannen, station:M.bagStation, glas:M.bagGlas, onder:M.bagOnder};
+  const eigen = m => { m.userData.eigen = true; return m; };
+  const matVan = {muur:M.bagMuur, kantoor:M.bagKantoor, plat:M.bagPlat, pannen:M.bagPannen, station:M.bagStation, glas:M.bagGlas, onder:eigen(std(0x2f3338,{roughness:.9, side:THREE.BackSide})),
+    stMuur:eigen(std(stijl.muur, {map:stijl.tex === 'gevel' ? T.gevel : T.kantoor, vertexColors:true, side:DS2})), stDak:eigen(std(stijl.dak, {vertexColors:true, roughness:.6, metalness:.2, side:DS2})),
+    kap:eigen(std(stijl.kap, {roughness:.25, metalness:.55, side:THREE.FrontSide}))};
   for (const [soort, pos] of Object.entries(buf)){
     if (!pos.length) continue;
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -1629,7 +1659,7 @@ async function laadGebouwen(k){
     st.groep = bouwGebouwen(k, wfs.features || [], lod22); st.klaar = true; scene.add(st.groep);
   } catch (e) { st.klaar = true; st.fout = String(e && e.message || e); }
 }
-function ruimGebouwen(k){ const st = GEBOUWEN.get(k); if (!st) return; GEBOUWEN.delete(k); if (st.groep){ scene.remove(st.groep); st.groep.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } }
+function ruimGebouwen(k){ const st = GEBOUWEN.get(k); if (!st) return; GEBOUWEN.delete(k); if (st.groep){ scene.remove(st.groep); st.groep.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.userData.eigen) o.material.dispose(); }); } }
 function werkGebouwenBij(){
   if (!BAG_WERKT || !REIS) return;
   REIS.S.forEach((S, k) => { const d = S - spel.s, nodig = d > -1400 && d < 3200;
