@@ -464,6 +464,14 @@ const SKILLS = {
   halfUur:    {naam:'Steeds een half uur later', vb:'07:15, 07:45, ?'},
   puzzel:     {naam:'Rekenplein-puzzels', vb:'stoelen, kaartjes en coupés'},
   alles:      {naam:'Alles door elkaar', vb:'alles van blok 1'},
+  minEnen:       {naam:'Min binnen het tiental', vb:'47 − 3'},
+  minNaarTiental:{naam:'Min terug naar het tiental', vb:'47 − 7'},
+  minOverKlein:  {naam:'Min over het tiental (klein)', vb:'43 − 6'},
+  minTientallen: {naam:'Tientallen eraf', vb:'65 − 30'},
+  minZonderLenen:{naam:'Min zonder over het tiental', vb:'68 − 25'},
+  minLenenKlein: {naam:'Rijgen: min met kleine getallen', vb:'52 − 17'},
+  minLenen:      {naam:'Rijgen: min tot 30 eraf', vb:'64 − 27'},
+  minMix:        {naam:'Minsommen door elkaar', vb:'alle stappen van min'},
 };
 // Ritten over dezelfde lijn: heen, terug, heen, terug. Per rit tien trajecten in de volgorde van het werkboek.
 const RITTEN = [
@@ -471,6 +479,8 @@ const RITTEN = [
   {kort:'keersommen', les:'les 8 t/m 10', skills:['keerBekend','keerMeer','keerMinder','keerOmkeren','keerAlles','vlek','keerVerhaal','testKeer','testPlusMin','toets1']},
   {kort:'klok en tot 1000', les:'les 11 t/m 16', skills:['klokHeel','klokHalf','klokKwart','klokTerug','telSprongen','hte','kleinGroot','klokTest','toets2','alles']},
   {kort:'plaatjes en puzzels', les:'les 12 t/m 20', skills:['kubus','diagram','kluis','rooster','halfUur','puzzel','kubus','diagram','kluis','alles']},
+  // extra: een stap terug bij de minsommen, in kleine stappen naar het rijgen toe (altijd open)
+  {kort:'min stap voor stap', les:'extra oefening: minsommen in kleine stappen', extra:true, skills:['minEnen','minNaarTiental','minOverKlein','minTientallen','minZonderLenen','minOverKlein','minLenenKlein','minLenen','aanvulMin','minMix']},
 ];
 const STRAT = {rijgen:'Rijgen', aanvullen:'Aanvullen', teveel:'Rijgen met te veel', tientallen:'Springen met tientallen', steunsom:'Steunsom', omkeren:'Omkeren', klok:'Klokkijken', tellen:'Tellen', hte:'HTE', ordenen:'Van klein naar groot', kijken:'Goed kijken', puzzel:'Puzzelen'};
 
@@ -719,6 +729,37 @@ const GEN = {
     v.zeg = v.verhaal; v.tokens = ['?']; v.antwoordAlleen = true;
     return v;
   },
+  // --- minsommen in kleine stappen ---
+  minEnen(){   // 47 − 3: alleen de eenheden veranderen
+    const t = R(1,9)*10, e = R(3,9), a = t + e, b = R(1, e - 1), pts = [a], lb = []; sprong(pts, lb, a, -b);
+    return somQ(a, MIN, b, a - b, {points:pts, labels:lb, verberg:'eind'}, 'rijgen', `Het tiental blijft ${t}. Reken alleen met de eenheden: ${e} − ${b}.`);
+  },
+  minNaarTiental(){   // 47 − 7 = 40
+    const t = R(1,9)*10, e = R(1,9), a = t + e, pts = [a], lb = []; sprong(pts, lb, a, -e);
+    return somQ(a, MIN, e, t, {points:pts, labels:lb, verberg:'eind'}, 'rijgen', `Haal alle eenheden weg. Dan kom je precies op het tiental.`);
+  },
+  minOverKlein(){   // 43 − 6: eerst naar het tiental, dan de rest
+    const t = R(2,9)*10, e = R(1,7), b = R(e + 1, 9), a = t + e, pts = [a], lb = []; let c = sprong(pts, lb, a, -e); sprong(pts, lb, c, -(b - e));
+    return somQ(a, MIN, b, a - b, {points:pts, labels:lb, verberg:'eind'}, 'rijgen', `Splits ${b} in ${e} en ${b - e}. Eerst ${e} terug naar ${t}, dan nog ${b - e}.`);
+  },
+  minTientallen(){   // 65 − 30
+    const a = R(31,99), k = R(1, Math.min(4, Math.floor((a - 1)/10))), pts = [a], lb = []; let c = a; for (let i = 0; i < k; i++) c = sprong(pts, lb, c, -10);
+    return somQ(a, MIN, 10*k, a - 10*k, {points:pts, labels:lb, verberg:'eind'}, 'tientallen', `De eenheden blijven ${a % 10}. Tel terug met sprongen van 10.`);
+  },
+  minZonderLenen(){   // 68 − 25: eerst de tientallen, dan de eenheden; niet over het tiental
+    let a, b; do { a = R(34,99); b = R(11, a - 11); } while (b % 10 === 0 || b % 10 > a % 10 || Math.floor(b/10) > 3);
+    const pts = [a], lb = []; let c = sprong(pts, lb, a, -(b - b % 10)); sprong(pts, lb, c, -(b % 10));
+    return somQ(a, MIN, b, a - b, {points:pts, labels:lb, verberg:'eind'}, 'rijgen', `Eerst de tientallen eraf: ${a} − ${b - b % 10}. Dan de eenheden: − ${b % 10}.`);
+  },
+  minLenenKlein(){   // 52 − 17: −10, dan terug naar het tiental, dan de rest
+    let a, b; do { a = R(31,69); b = R(12,19); } while (b % 10 <= a % 10 || a - b < 10);
+    return somQ(a, MIN, b, a - b, rijgLijn(a, b, -1), 'rijgen', `Eerst 10 eraf. Dan terug naar het tiental, dan de rest.`);
+  },
+  minLenen(){   // 64 − 27
+    let a, b; do { a = R(35,89); b = R(12,29); } while (b % 10 === 0 || b % 10 <= a % 10 || a - b < 10);
+    return somQ(a, MIN, b, a - b, rijgLijn(a, b, -1), 'rijgen', 'Eerst de tientallen eraf, dan terug naar het tiental, dan de rest.');
+  },
+  minMix(){ return GEN[kies(['minEnen','minNaarTiental','minOverKlein','minTientallen','minZonderLenen','minLenenKlein','minLenen','aanvulMin'])](); },
   mix(){ return GEN[kies(['tientallen','aanvulT','rijgPlus','rijgMin','aanvulMin','teveelPlus','teveelMin','lijnLezen','verhaal','rijgPlus','rijgMin'])](); },
 
   // les 8 en 9: keersommen met steunsommen (1×, 2×, 5×, 10×), 1 × meer, 1 × minder, omkeren
@@ -967,7 +1008,8 @@ function ritVraag(skill){
     keerAlles:keer, keerVerhaal:keer, testKeer:keer, vlek:keer, testPlusMin:[geld, instap('rijgPlus'), uitstap('rijgMin')], toets1:[groepjes('keerAlles'), geld, instap('rijgPlus')],
     toets2:[instap('rijgPlus'), uitstap('rijgMin'), geld], alles:[instap('rijgPlus'), uitstap('rijgMin'), stoelen, snelheid, groepjes('keerAlles'), geld],
     tientallen:[snelheid, instap('tientallen'), uitstap('tientallen')], aanvulT:[totTiental], rijgPlus:[instap('rijgPlus')], rijgMin:[uitstap('rijgMin')],
-    aanvulMin:[stoelen], teveelPlus:[instap('teveelPlus')], teveelMin:[uitstap('teveelMin')], lijnLezen:[instap('rijgPlus'), uitstap('rijgMin')],
+    aanvulMin:[stoelen], minEnen:[uitstap('minEnen')], minNaarTiental:[uitstap('minNaarTiental')], minOverKlein:[uitstap('minOverKlein')], minTientallen:[uitstap('minTientallen')],
+    minZonderLenen:[uitstap('minZonderLenen')], minLenenKlein:[uitstap('minLenenKlein')], minLenen:[uitstap('minLenen')], minMix:[uitstap('minMix')], teveelPlus:[instap('teveelPlus')], teveelMin:[uitstap('teveelMin')], lijnLezen:[instap('rijgPlus'), uitstap('rijgMin')],
     verhaal:[instap('rijgPlus'), uitstap('rijgMin'), stoelen, snelheid, instap('teveelPlus')], mix:[instap('rijgPlus'), uitstap('rijgMin'), stoelen, snelheid, uitstap('teveelMin'), totTiental],
   }[skill] || [];
   for (const maak of opties.sort(() => Math.random() - .5)){ const q = maak(); if (q){ q.tokens = ['?']; q.antwoordAlleen = true; q.zeg = q.verhaal; q.rit = true; return q; } }
@@ -1000,6 +1042,7 @@ function zetOm(){
     for (let i = 0; i < Math.min(L, RITTEN.length); i++) prog.stap[i] = Math.max(prog.stap[i] || 0, 10);
     if (L < RITTEN.length) prog.stap[L] = Math.max(prog.stap[L] || 0, prog.bereikt % 10);
     prog.les = Math.min(L, RITTEN.length); prog.km = 0; prog.omgezet = true; }
+  if (!prog.minLes){ if ((prog.les || 0) >= 4) prog.les = (prog.les || 0) + 1; prog.minLes = true; }   // de extra minles staat op plek 4
   prog.stap = prog.stap || {}; prog.bezocht = prog.bezocht || []; prog.reis = prog.reis || {van:'GVC', naar:'AMF', ic:true, g:0};
 }
 function logServer(soort, rij){ if (GAS) server(soort, SPELER, rij).catch(() => {}); }
@@ -2416,14 +2459,16 @@ function reisTijden(){
 const spoorVan = code => 1 + [...code].reduce((a, c) => a + c.charCodeAt(0), 0) % 9;
 function vulStart(){
   const tabs = $('ritten'); tabs.innerHTML = '';
-  for (let L = 0; L <= RITTEN.length; L++){
-    const open = L === 0 || lesStap(L-1) >= 10 || lesStap(L) > 0 || L <= lesNr();
+  const volgorde = [0, ...RITTEN.map((r, i) => r.extra ? i : -1).filter(i => i > 0), ...RITTEN.map((r, i) => !r.extra && i > 0 ? i : -1).filter(i => i > 0), RITTEN.length];
+  for (const L of volgorde){
+    const vorige = RITTEN.slice(0, L).map((r, i) => r.extra ? -1 : i).filter(i => i >= 0).pop();
+    const open = L === 0 || (L < RITTEN.length && RITTEN[L].extra) || (vorige !== undefined && lesStap(vorige) >= 10) || lesStap(L) > 0 || L === lesNr();
     const b = document.createElement('button'); b.setAttribute('role','tab'); b.setAttribute('aria-selected', L === lesNr() ? 'true' : 'false'); b.disabled = !open;
     b.textContent = (L < RITTEN.length ? RITTEN[L].kort : 'alles door elkaar') + (L < RITTEN.length && lesStap(L) >= 10 ? ' ✓' : '');
     b.onclick = () => { prog.les = L; bewaar(); vulStart(); }; tabs.appendChild(b);
   }
   const L = lesNr();
-  $('lesTekst').textContent = L < RITTEN.length ? `De Wereld in Getallen, blok 1, ${RITTEN[L].les} · ${Math.min(lesStap(L), 10)} van de 10 stappen gedaan` : 'Alles van blok 1 door elkaar';
+  $('lesTekst').textContent = L < RITTEN.length ? `${RITTEN[L].extra ? 'Extra oefening: minsommen in kleine stappen' : 'De Wereld in Getallen, blok 1, ' + RITTEN[L].les} · ${Math.min(lesStap(L), 10)} van de 10 stappen gedaan` : 'Alles van blok 1 door elkaar';
   if (document.activeElement !== $('iVan')) $('iVan').value = REIS.van.naam;
   if (document.activeElement !== $('iNaar')) $('iNaar').value = REIS.naar.naam;
   $('kIC').setAttribute('aria-pressed', REIS.soort === 'ic'); $('kSpr').setAttribute('aria-pressed', REIS.soort === 'spr'); $('kES').setAttribute('aria-pressed', REIS.soort === 'es');
