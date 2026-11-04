@@ -101,7 +101,14 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
 .lijn .vraagteken{fill:#b07a00}
 .lijn .vast{animation:none;stroke-dashoffset:0;opacity:1}
 .stappen{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px;font-size:18px;line-height:1.35}
-.stappen li:last-child{font-weight:700;color:var(--blauw)}
+.stappen li.klaar{font-size:15px;color:var(--zacht)}
+.stappen li.klaar .splitsboom{width:110px;height:auto}
+.stappen li.nu{font-size:21px;font-weight:600;color:var(--inkt);background:#fff6d6;border-radius:10px;padding:6px 10px;margin-left:-.4em}
+.stappen li.nu::marker{color:var(--blauw);font-weight:700}
+.stappen b{color:var(--blauw)}
+.splitsboom{display:block;margin:6px 0 2px;max-width:100%}
+.uitleg-kop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.stapnr{font-size:13px;font-weight:700;color:var(--zacht);white-space:nowrap}
 .stapknop{align-self:flex-start;font-size:19px;padding:10px 20px}
 .pad.dicht{opacity:.3;pointer-events:none}
 @keyframes teken{to{stroke-dashoffset:0}}
@@ -244,6 +251,7 @@ button:focus-visible{outline:3px solid var(--blauw-2);outline-offset:2px}
   .som{font-size:clamp(30px,9vw,44px)}
   .verhaal{font-size:16px}
   .uitleg,.stappen{font-size:15px}
+  .stappen li.nu{font-size:17px}
   .digibord{font-size:30px}
   .stapknop{font-size:17px;padding:8px 16px}
   .pad{grid-template-columns:repeat(6,1fr);grid-auto-rows:44px;gap:6px}
@@ -740,7 +748,7 @@ const GEN = {
   },
   minOverKlein(){   // 43 − 6: eerst naar het tiental, dan de rest
     const t = R(2,9)*10, e = R(1,7), b = R(e + 1, 9), a = t + e, pts = [a], lb = []; let c = sprong(pts, lb, a, -e); sprong(pts, lb, c, -(b - e));
-    return somQ(a, MIN, b, a - b, {points:pts, labels:lb, verberg:'eind'}, 'rijgen', `Splits ${b} in ${e} en ${b - e}. Eerst ${e} terug naar ${t}, dan nog ${b - e}.`);
+    return somQ(a, MIN, b, a - b, {points:pts, labels:lb, verberg:'eind'}, 'rijgen', `Eerst terug naar het tiental ${t}. Dan de rest eraf.`);
   },
   minTientallen(){   // 65 − 30
     const a = R(31,99), k = R(1, Math.min(4, Math.floor((a - 1)/10))), pts = [a], lb = []; let c = a; for (let i = 0; i < k; i++) c = sprong(pts, lb, c, -10);
@@ -2263,16 +2271,34 @@ function zetHulpKnop(){ const q = spel.q, k = $('kHulp'); if (!q || k.hidden) re
 setInterval(zetHulpKnop, 500);
 function toonHulp(){ const q = spel.q; if (!q || q.lijnVraag || $('kHulp').disabled) return; startUitleg(false, ''); }
 // Uitleg in stappen: de speler klikt zelf door ("Volgende stap") en sluit af met "Ik snap het". Tot die tijd is het toetsenbord dicht.
+// splitsboom zoals in het werkboek: het getal bovenaan, de stukjes eronder
+function splitsboom(totaal, delen){
+  const n = delen.length, w = Math.max(150, 40 + n*62), cx = w/2, xs = delen.map((_, i) => n === 1 ? cx : 34 + i*(w - 68)/(n - 1));
+  return `<svg class="splitsboom" viewBox="0 0 ${w} 96" width="${w}" height="96" aria-hidden="true">`
+    + xs.map(x => `<line x1="${cx}" y1="36" x2="${x}" y2="62" stroke="#003082" stroke-width="3"/>`).join('')
+    + `<rect x="${cx - 28}" y="4" width="56" height="32" rx="8" fill="#FFC917" stroke="#003082" stroke-width="2.5"/><text x="${cx}" y="28" text-anchor="middle" font-size="20" font-weight="700" fill="#003082" font-family="Fredoka,sans-serif">${totaal}</text>`
+    + xs.map((x, i) => `<rect x="${x - 25}" y="62" width="50" height="30" rx="8" fill="#fff" stroke="#003082" stroke-width="2.5"/><text x="${x}" y="84" text-anchor="middle" font-size="19" font-weight="700" fill="#003082" font-family="Fredoka,sans-serif">${delen[i]}</text>`).join('')
+    + `</svg>`;
+}
+const opsomming = a => a.length < 2 ? String(a[0]) : a.slice(0, -1).join(', ') + ' en ' + a[a.length - 1];
 function maakStappen(q, volledig){
   const st = [{tekst:`<b>${STRAT[q.strat] || 'Hulp'}.</b> ${q.tip}`, boog:0}], l = q.lijn;
   const metLijn = l && !q.klokTeken && !q.plattegrond;
   if (metLijn && l.labels.length > 4){
     st.push({tekst:`Maak ${l.labels.length} sprongen van ${l.labels[0].slice(1)}: ${l.points.slice(1, 4).join(', ')}, …`, boog:l.labels.length});
   } else if (metLijn){
-    l.labels.forEach((lab, k) => { const van = l.points[k], naar = l.points[k+1], laatste = k === l.labels.length - 1;
-      const sp = `${lab[0]} ${lab.slice(1)}`, txt = l.verberg === 'sprong' && !volledig ? `${van} + ? = ${naar}` : laatste && l.verberg === 'eind' && !volledig ? `${van} ${sp} = ?` : `${van} ${sp} = ${naar}`;
-      st.push({tekst:`Sprong ${k+1}: ${txt}`, boog:k+1}); });
-    if (l.optellen) st.push({tekst: volledig ? `Samen: ${l.labels.map(x => x.slice(1)).join(' + ')} = ${q.ans}` : `Tel de sprongen op: ${l.labels.map(x => x.slice(1)).join(' + ')} = ?`, boog:l.labels.length});
+    const stukken = l.labels.map(x => Number(x.slice(1))), b = q.tokens && q.tokens[2];
+    // splitsen: het getal dat eraf of erbij gaat in stukjes, zodat elke sprong een stukje is
+    if (!l.optellen && stukken.length >= 2 && typeof b === 'number' && stukken.reduce((x, y) => x + y, 0) === b)
+      st.push({tekst:`Splits <b>${b}</b> in <b>${opsomming(stukken)}</b>.`, plaatje:splitsboom(b, stukken), boog:0});
+    l.labels.forEach((lab, k) => { const van = l.points[k], naar = l.points[k+1], laatste = k === l.labels.length - 1, n = lab.slice(1), min = lab[0] !== '+';
+      const verstopt = (laatste && l.verberg === 'eind' && !volledig);
+      let txt;
+      if (l.optellen) txt = `Spring van ${van} naar ${naar}. Dat is <b>${n}</b>.`;
+      else if (l.verberg === 'sprong' && !volledig) txt = `Van ${van} naar ${naar}: hoeveel spring je?`;
+      else txt = `Spring <b>${n}</b> ${min ? 'terug' : 'verder'}: van ${van} naar ` + (verstopt ? '<b>?</b>' : `<b>${naar}</b>.`);
+      st.push({tekst:txt, boog:k+1}); });
+    if (l.optellen) st.push({tekst: volledig ? `Tel de sprongen op: ${l.labels.map(x => x.slice(1)).join(' + ')} = <b>${q.ans}</b>.` : `Tel de sprongen op: ${l.labels.map(x => x.slice(1)).join(' + ')} = <b>?</b>`, boog:l.labels.length});
   }
   const antw = q.tijdInvoer ? tijdTxt(Math.floor(q.ans/100), q.ans%100) : String(q.ans);
   if (volledig) st.push({tekst:`${q.antwoordUitleg || `Het antwoord is ${antw}.`} Typ ${antw} om door te rijden.`, boog:99});
@@ -2287,12 +2313,14 @@ function startUitleg(volledig, kop){
 }
 function toonStap(){
   const u = spel.uitleg, q = spel.q, st = u.stappen.slice(0, u.i + 1), boog = Math.max(...st.map(x => x.boog));
-  $('vUitleg').innerHTML = (u.kop ? `<b>${u.kop}</b> ` : '') + `<ol class="stappen">${st.map(x => `<li>${x.tekst}</li>`).join('')}</ol>`;
+  // één stap tegelijk groot in beeld; de stappen ervoor klein en grijs erboven
+  $('vUitleg').innerHTML = `<div class="uitleg-kop">${u.kop ? `<b>${u.kop}</b>` : '<b>Zo doe je het.</b>'}<span class="stapnr">stap ${u.i + 1} van ${u.stappen.length}</span></div>`
+    + `<ol class="stappen">${st.map((x, k) => `<li class="${k < u.i ? 'klaar' : 'nu'}">${x.tekst}${x.plaatje || ''}</li>`).join('')}</ol>`;
   if (q.lijn && !q.klokTeken && !q.plattegrond) tekenLijn(q.lijn, u.volledig, boog === 0 ? 0 : Math.min(boog, q.lijn.labels.length));
   else tekenHulpBeeld(q, u.volledig);
   const laatste = u.i === u.stappen.length - 1;
   $('kStap').textContent = laatste ? 'Ik snap het' : 'Volgende stap';
-  if (prog.voorlees) zeg(u.stappen[u.i].tekst.replace(/<[^>]+>/g, '').replace(/Sprong (\d+):/, 'Sprong $1.'));
+  if (prog.voorlees) zeg(u.stappen[u.i].tekst.replace(/<[^>]+>/g, '').replace(/\?/g, 'hoeveel').replace(/ − /g, ' min ').replace(/ \+ /g, ' plus '));
 }
 function bevestigGoed(){
   spel.uitleg = null; $('kStap').hidden = true; $('pad').classList.remove('dicht');
