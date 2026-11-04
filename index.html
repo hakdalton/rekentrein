@@ -2263,7 +2263,7 @@ function tekenKlok(h, m, alles){
   svg.innerHTML = t; svg.removeAttribute('hidden');
 }
 // Hulp gaat pas open na even zelf nadenken; wie hulp neemt, telt niet mee voor de reeks.
-const HULP_WACHT = 20;
+const HULP_WACHT = 40;   // eerst 40 seconden zelf nadenken (Loek nam te snel hulp)
 function hulpLabel(q){ return q.klokTeken ? 'Hulp: klok' : q.lijn ? 'Hulp: getallenlijn' : q.plattegrond ? 'Hulp: van bovenaf' : 'Hulp'; }
 function zetHulpKnop(){ const q = spel.q, k = $('kHulp'); if (!q || k.hidden) return;
   const rest = Math.ceil((spel.hulpVanaf - performance.now())/1000);
